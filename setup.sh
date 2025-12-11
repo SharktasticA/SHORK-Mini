@@ -3,6 +3,10 @@
 # Get common variables and functions
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+# Desired versions
+KERNEL_VER=6.14.11
+BUSYBOX_VER=1_36_1
+
 
 
 # Intro message
@@ -37,19 +41,19 @@ done
 
 # Download and extract i486 cross-compiler
 echo -e "${GREEN}Download and extract i486 cross-compiler...${RESET}"
-wget -N https://musl.cc/i486-linux-musl-cross.tgz
+[ -f i486-linux-musl-cross.tgz ] || wget https://musl.cc/i486-linux-musl-cross.tgz
 [ -d "i486-linux-musl-cross" ] || tar xvf i486-linux-musl-cross.tgz
 
 
 
-# Download and make the latest Linux kernel that supports i486
-echo -e "${GREEN}Download and make the latest Linux kernel that supports i486...${RESET}"
+# Download and compile Linux kernel
+echo -e "${GREEN}Downloading the latest Linux kernel that supports i486...${RESET}"
 mkdir -p build
 if [ ! -d "linux" ]; then
-    git clone --depth=1 --branch v6.14.11 https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
+    git clone --depth=1 --branch v$KERNEL_VER https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
     cd linux/
     make ARCH=x86 tinyconfig
-    cp ../configs/linux.config .config
+    cp $CURR_DIR/configs/linux.config .config
 else
     echo -e "${YELLOW}The latest Linux kernel has already downloaded. Select action:${RESET}"
     select action in "Proceed with current kernel" "Delete & reclone"; do
@@ -61,10 +65,10 @@ else
             "Delete & reclone")
                 echo -e "${GREEN}Deleting and recloning...${RESET}"
                 sudo rm -r linux
-                git clone --depth=1 --branch v6.14.11 https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
+                git clone --depth=1 --branch v$KERNEL_VER https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
                 cd linux/
                 make ARCH=x86 tinyconfig
-                cp ../configs/linux.config .config
+                cp $CURR_DIR/configs/linux.config .config
                 break ;;
             *)
         esac
@@ -74,48 +78,43 @@ fi
 echo -e "${GREEN}If further configuration is required, please run \"make ARCH=x86 menuconfig\"...${RESET}"
 await_input
 
-
-
-# Compiling Linux kernel
 echo -e "${GREEN}Compiling Linux kernel...${RESET}"
 make ARCH=x86 bzImage -j$(nproc)
 mv arch/x86/boot/bzImage ../build || true
-cd ..
+cd $CURR_DIR
 
 
 
-# Download and make BusyBox
-echo -e "${GREEN}Download and make BusyBox...${RESET}"
-wget -N https://github.com/mirror/busybox/archive/refs/tags/1_36_1.tar.gz
-[ -d busybox-1_36_1 ] || tar xzvf 1_36_1.tar.gz
-cd busybox-1_36_1/
+# Download and compile BusyBox
+echo -e "${GREEN}Downloading BusyBox...${RESET}"
+[ -f $BUSYBOX_VER.tar.gz ] || wget https://github.com/mirror/busybox/archive/refs/tags/$BUSYBOX_VER.tar.gz
+[ -d busybox-$BUSYBOX_VER ] || tar xzvf $BUSYBOX_VER.tar.gz
+cd busybox-$BUSYBOX_VER/
 make ARCH=x86 allnoconfig
 sed -i 's/main() {}/int main() {}/' scripts/kconfig/lxdialog/check-lxdialog.sh
-cp ../configs/busybox.config .config
+cp $CURR_DIR/configs/busybox.config .config
 
 echo -e "${GREEN}If further configuration is required, please run \"make ARCH=x86 menuconfig\"...${RESET}"
 await_input
 
-
-
-# Compiling BusyBox
 echo -e "${GREEN}Compiling BusyBox...${RESET}"
-BASE="$(realpath ..)"
-sed -i "s|.*CONFIG_CROSS_COMPILER_PREFIX.*|CONFIG_CROSS_COMPILER_PREFIX=\"${BASE}/i486-linux-musl-cross/bin/i486-linux-musl-\"|" .config
-sed -i "s|.*CONFIG_SYSROOT.*|CONFIG_SYSROOT=\"${BASE}/i486-linux-musl-cross\"|" .config
-sed -i "s|.*CONFIG_EXTRA_CFLAGS.*|CONFIG_EXTRA_CFLAGS=-I${BASE}/i486-linux-musl-cross/include|" .config
-sed -i "s|.*CONFIG_EXTRA_LDFLAGS.*|CONFIG_EXTRA_LDFLAGS=-L${BASE}/i486-linux-musl-cross/lib|" .config
+sed -i "s|^CONFIG_CROSS_COMPILER_PREFIX=.*|CONFIG_CROSS_COMPILER_PREFIX=\"${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-\"|" .config
+sed -i "s|^CONFIG_SYSROOT=.*|CONFIG_SYSROOT=\"${CURR_DIR}/i486-linux-musl-cross\"|" .config
+sed -i "s|^CONFIG_EXTRA_CFLAGS=.*|CONFIG_EXTRA_CFLAGS=\"-I${CURR_DIR}/i486-linux-musl-cross/include\"|" .config
+sed -i "s|^CONFIG_EXTRA_LDFLAGS=.*|CONFIG_EXTRA_LDFLAGS=\"-L${CURR_DIR}/i486-linux-musl-cross/lib\"|" .config
 make ARCH=x86 -j$(nproc) && make ARCH=x86 install
 
 
 
 # Build the file system
-echo -e "${GREEN}Build the file system...${RESET}"
-if [ -d "../filesystem" ]; then
-    sudo rm -r ../filesystem
+echo -e "${GREEN}Move the result into a file system we will build...${RESET}"
+if [ -d "${CURR_DIR}/filesystem" ]; then
+    sudo rm -r $CURR_DIR/filesystem
 fi
-mv _install ../filesystem
-cd ../filesystem
+mv _install $CURR_DIR/filesystem
+
+echo -e "${GREEN}Build the file system...${RESET}"
+cd $CURR_DIR/filesystem
 mkdir -pv {dev,proc,etc/init.d,sys,tmp,home}
 sudo mknod dev/console c 5 1
 sudo mknod dev/null c 1 3
@@ -125,20 +124,25 @@ mkdir -p etc
 mkdir -p etc/init.d/
 
 echo -e "${GREEN}Copy pre-defined files...${RESET}"
-cp ../predefined/welcome .
-cp ../predefined/inittab etc/
-cp ../predefined/rc etc/init.d/
+cp $CURR_DIR/predefined/welcome .
+cp $CURR_DIR/predefined/inittab etc/
+cp $CURR_DIR/predefined/rc etc/init.d/
 
 echo -e "${GREEN}Configure permissions...${RESET}"
 chmod +x etc/init.d/rc
 sudo chown -R root:root .
 
-echo -e "${GREEN}Compress directory into one file...${RESET}"
-find . | cpio -H newc -o | xz --check=crc32 --lzma2=dict=512KiB -e > ../build/rootfs.cpio.xz
+echo -e "${GREEN}Set up U.K. English locale...${RESET}"
+sudo mkdir -p usr/share/locale/en_GB.UTF-8
+echo "LC_ALL=en_GB.UTF-8" | sudo tee etc/locale.conf > /dev/null
 
-cd ..
-cp predefined/syslinux.cfg build/
-cd build/
+
+echo -e "${GREEN}Compress directory into one file...${RESET}"
+find . | cpio -H newc -o | xz --check=crc32 --lzma2=dict=512KiB -e > $CURR_DIR/build/rootfs.cpio.xz
+
+cd $CURR_DIR/build/
+cp $CURR_DIR/predefined/syslinux.cfg .
+
 
 
 # Creating and populating an image containg this system
