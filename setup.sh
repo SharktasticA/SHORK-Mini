@@ -75,11 +75,17 @@ if [ ! -d "linux" ]; then
     cp $CURR_DIR/configs/linux.config .config
 else
     echo -e "${YELLOW}The latest Linux kernel has already downloaded. Select action:${RESET}"
-    select action in "Proceed with current kernel" "Delete & reclone"; do
+    select action in "Proceed with current kernel" "Reset & clean" "Delete & reclone"; do
         case $action in
             "Proceed with current kernel")
                 echo -e "${GREEN}Proceeding with current kernel...${RESET}"
                 cd linux/
+                break ;;
+            "Reset & clean")
+                echo -e "${GREEN}Resetting and cleaning...${RESET}"
+                cd linux/
+                git reset --hard || true
+                make clean
                 break ;;
             "Delete & reclone")
                 echo -e "${GREEN}Deleting and recloning...${RESET}"
