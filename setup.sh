@@ -6,6 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 # Desired versions
 KERNEL_VER=6.14.11
 BUSYBOX_VER=1_36_1
+NANO_VER=5.7
 
 
 
@@ -30,7 +31,7 @@ select host in "Arch based" "Debian based"; do
             echo -e "${GREEN}Install needed host packages...${RESET}"
             sudo dpkg --add-architecture i386
             sudo apt-get update
-            sudo apt-get install -y libncurses-dev bc flex bison syslinux cpio libncurses-dev:i386 dosfstools || true
+            sudo apt-get install -y libncurses-dev bc flex bison syslinux cpio libncurses-dev:i386 dosfstools texinfo || true
             export PATH="$PATH:/usr/sbin:/sbin"
             break ;;
         *)
@@ -43,6 +44,24 @@ done
 echo -e "${GREEN}Download and extract i486 cross-compiler...${RESET}"
 [ -f i486-linux-musl-cross.tgz ] || wget https://musl.cc/i486-linux-musl-cross.tgz
 [ -d "i486-linux-musl-cross" ] || tar xvf i486-linux-musl-cross.tgz
+
+
+
+# Download and compile ncurses (required for other programs)
+echo -e "${GREEN}Building ncurses...${RESET}"
+cd "$CURR_DIR"
+[ -f ncurses-6.4.tar.gz ] || wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz
+[ -d ncurses-6.4 ] || tar xzvf ncurses-6.4.tar.gz
+
+# Skip building if already successfully compiled
+if [ ! -f "${CURR_DIR}/i486-linux-musl-cross/lib/libncursesw.a" ]; then
+    echo -e "${GREEN}Compiling ncurses...${RESET}"
+    cd ncurses-6.4
+    ./configure --host=i486-linux-musl --prefix="$CURR_DIR/i486-linux-musl-cross" --with-normal --without-shared --without-debug --without-cxx --enable-widec --without-termlib CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc"
+    make -j$(nproc) && make install
+else
+    echo -e "${LIGHT_RED}ncurses already compiled, skipping...${RESET}"
+fi
 
 
 
@@ -113,6 +132,45 @@ if [ -d "${CURR_DIR}/filesystem" ]; then
 fi
 mv _install $CURR_DIR/filesystem
 
+
+
+# Download and compile nano
+cd $CURR_DIR
+echo -e "${GREEN}Downloading nano...${RESET}"
+[ -f nano-$NANO_VER.tar.xz ] || wget https://www.nano-editor.org/dist/v5/nano-$NANO_VER.tar.xz
+if [ -d nano-$NANO_VER ]; then
+    echo -e "${Yellow}nano's source is already present, cleaning up before proceeding...${RESET}"
+    cd nano-$NANO_VER/
+    make clean
+else
+    tar xf nano-$NANO_VER.tar.xz
+    cd nano-$NANO_VER/
+fi
+
+# Skip building if already successfully compiled
+if [ ! -f "${CURR_DIR}/filesystem/usr/bin/nano" ]; then
+    echo -e "${GREEN}Compiling nano...${RESET}"
+
+    # In case "cannot find -ltinfo" error 
+    find . -name config.cache -delete
+    export ac_cv_search_tigetstr='-lncursesw'
+    export ac_cv_lib_tinfo_tigetstr='no'
+    export LIBS="-lncursesw"
+
+    ./configure --cache-file=/dev/null --host=i486-linux-musl --prefix=/usr --enable-utf8 --enable-color --disable-nls --disable-speller --disable-browser --disable-libmagic --disable-justify --disable-wrapping --disable-mouse CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc" CFLAGS="-Os -march=i486 -mno-fancy-math-387 -I${CURR_DIR}/i486-linux-musl-cross/include -I${CURR_DIR}/i486-linux-musl-cross/include/ncursesw" LDFLAGS="-static -L${CURR_DIR}/i486-linux-musl-cross/lib"
+
+    # In case "cannot find -ltinfo" error 
+    grep -rl "\-ltinfo" . | xargs -r sed -i 's/-ltinfo//g' 2>/dev/null || true
+    grep -rl "TINFO_LIBS" . | xargs -r sed -i 's/TINFO_LIBS.*/TINFO_LIBS = /' 2>/dev/null || true
+    
+    make TINFO_LIBS="" -j$(nproc)
+    make DESTDIR="${CURR_DIR}/filesystem" install
+else
+    echo -e "${LIGHT_RED}nano already compiled, skipping...${RESET}"
+fi
+
+
+
 echo -e "${GREEN}Build the file system...${RESET}"
 cd $CURR_DIR/filesystem
 mkdir -pv {dev,proc,etc/init.d,sys,tmp,home}
@@ -127,15 +185,21 @@ echo -e "${GREEN}Copy pre-defined files...${RESET}"
 cp $CURR_DIR/predefined/welcome .
 cp $CURR_DIR/predefined/inittab etc/
 cp $CURR_DIR/predefined/rc etc/init.d/
+cp $CURR_DIR/predefined/ldd usr/bin/
+
+echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
+mkdir -p usr/share/terminfo/src/
+cp $CURR_DIR/predefined/terminfo.src usr/share/terminfo/src/
+tic -x -1 -o usr/share/terminfo usr/share/terminfo/src/terminfo.src
 
 echo -e "${GREEN}Configure permissions...${RESET}"
 chmod +x etc/init.d/rc
+sudo chmod +x /usr/bin/ldd
 sudo chown -R root:root .
 
 echo -e "${GREEN}Set up U.K. English locale...${RESET}"
 sudo mkdir -p usr/share/locale/en_GB.UTF-8
 echo "LC_ALL=en_GB.UTF-8" | sudo tee etc/locale.conf > /dev/null
-
 
 echo -e "${GREEN}Compress directory into one file...${RESET}"
 find . | cpio -H newc -o | xz --check=crc32 --lzma2=dict=512KiB -e > $CURR_DIR/build/rootfs.cpio.xz

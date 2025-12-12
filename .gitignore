@@ -1,7 +1,9 @@
-*.tar.gz
+*.tar.*
 *.tgz
 filesystem/
-busybox*/
+busybox-*/
 linux/
 i486-linux-musl-cross/
 build/
+nano-*/
+ncurses-*/
