@@ -182,14 +182,14 @@ mkdir -p etc
 mkdir -p etc/init.d/
 
 echo -e "${GREEN}Copy pre-defined files...${RESET}"
-cp $CURR_DIR/predefined/welcome .
-cp $CURR_DIR/predefined/inittab etc/
-cp $CURR_DIR/predefined/rc etc/init.d/
-cp $CURR_DIR/predefined/ldd usr/bin/
+cp $CURR_DIR/sysfiles/welcome .
+cp $CURR_DIR/sysfiles/inittab etc/
+cp $CURR_DIR/sysfiles/rc etc/init.d/
+cp $CURR_DIR/sysfiles/ldd usr/bin/
 
 echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
 mkdir -p usr/share/terminfo/src/
-cp $CURR_DIR/predefined/terminfo.src usr/share/terminfo/src/
+cp $CURR_DIR/sysfiles/terminfo.src usr/share/terminfo/src/
 tic -x -1 -o usr/share/terminfo usr/share/terminfo/src/terminfo.src
 
 echo -e "${GREEN}Configure permissions...${RESET}"
@@ -205,7 +205,7 @@ echo -e "${GREEN}Compress directory into one file...${RESET}"
 find . | cpio -H newc -o | xz --check=crc32 --lzma2=dict=512KiB -e > $CURR_DIR/build/rootfs.cpio.xz
 
 cd $CURR_DIR/build/
-cp $CURR_DIR/predefined/syslinux.cfg .
+cp $CURR_DIR/sysfiles/syslinux.cfg .
 
 
 
