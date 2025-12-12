@@ -26,7 +26,7 @@ On Arch-based or Debian-based Linux, just run `setup.sh`. Once it has finished, 
 
 If you do not want the environment to always be green-on-black, do the following, then run `setup.sh`:
 
-* Remove/comment out the line with `printf '\033[32m\033[40m'` in `sysfiles/rc`.
+* In `sysfiles/rc`, remove/comment out the line `printf '\033[32m\033[40m'` and replace the line `export PS1='\033[32m\033[40m\w$ '` with `export PS1='w$ '"`.
 * Replace `sgr0=\E[0m\E[32m\E[40m` with `sgr0=\E[0m` in `sysfiles/terminfo.src`.
 
 ## Notice & disclaimers
