@@ -18,6 +18,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 KERNEL_VER=6.14.11
 BUSYBOX_VER=1_36_1
 NANO_VER=5.7
+TNFTP_VER=20230507
 
 
 
@@ -182,6 +183,38 @@ get_nano()
     fi
 }
 
+# Download and compile tnftp
+get_tnftp()
+{
+    cd $CURR_DIR
+    echo -e "${GREEN}Downloading tnftp...${RESET}"
+    [ -f tnftp-$TNFTP_VER.tar.gz ] || wget https://ftp.netbsd.org/pub/NetBSD/misc/tnftp/tnftp-$TNFTP_VER.tar.gz
+    if [ -d tnftp-$TNFTP_VER ]; then
+        echo -e "${Yellow}tnftp's source is already present, cleaning up before proceeding...${RESET}"
+        cd tnftp-$TNFTP_VER/
+        make clean
+    else
+        tar xzf tnftp-$TNFTP_VER.tar.gz
+        cd tnftp-$TNFTP_VER/
+    fi
+
+    # Skip building if already successfully compiled
+    if [ ! -f "${CURR_DIR}/build/root/usr/bin/tnftp" ]; then
+        echo -e "${GREEN}Compiling tnftp...${RESET}"
+
+        unset LIBS
+        chmod +x "$CURR_DIR/configs/i486-linux-musl-gcc-static"
+
+        ./configure --host=i486-linux-musl --prefix=/usr --disable-editcomplete --disable-shared --enable-static CC="$CURR_DIR/configs/i486-linux-musl-gcc-static" AR="$CURR_DIR/i486-linux-musl-cross/bin/i486-linux-musl-ar" RANLIB="$CURR_DIR/i486-linux-musl-cross/bin/i486-linux-musl-ranlib" STRIP="$CURR_DIR/i486-linux-musl-cross/bin/i486-linux-musl-strip" CFLAGS="-Os -march=i486" LDFLAGS=""
+
+        make -j$(nproc)
+        make DESTDIR="${CURR_DIR}/build/root" install
+        ln -sf tnftp "${CURR_DIR}/build/root/usr/bin/ftp"
+    else
+        echo -e "${LIGHT_RED}tnftp already compiled, skipping...${RESET}"
+    fi
+}
+
 # Build the file system
 build_file_system()
 {
@@ -298,8 +331,6 @@ EOF
     sudo extlinux --install /mnt/shorkmini/boot/syslinux
 
     # Install MBR boot code
-    MBR_BIN=""
-
     sudo dd if=/usr/lib/syslinux/mbr/mbr.bin of=shorkmini.img bs=440 count=1 conv=notrunc
 }
 
@@ -323,6 +354,7 @@ if ! $MINIMAL; then
     get_kernel
     get_busybox
     get_nano
+    get_tnftp
 else
     echo -e "${LIGHT_RED}Minimal mode specified, skipping to building the file system...${RESET}"
 fi

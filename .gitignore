@@ -6,3 +6,4 @@ i486-linux-musl-cross/
 build/
 nano-*/
 ncurses-*/
+tnftp-*/

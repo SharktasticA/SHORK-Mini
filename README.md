@@ -30,9 +30,9 @@ On Arch-based or Debian-based Linux, just run `setup.sh`. Once it has finished, 
 
 ## Directories
 
-* `configs`: My Linux kernel and BusyBox `.config` files that are copied into their respective source code directories before compilation.
+* `configs`: Contains my Linux kernel and BusyBox `.config` files that are copied into their respective source code directories before compilation, and a helper when compiling a binary that should be static not dynamic.
 
-* `sysfiles`: Important files to be copied into the Linux root file system before zipping.
+* `sysfiles`: Contains important system files to be copied into the Linux root file system before zipping.
 
 ## Adjustments
 
