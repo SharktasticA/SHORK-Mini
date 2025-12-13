@@ -1,28 +1,40 @@
 #!/bin/sh
 
-mount -t proc none /proc
-mount -t sysfs none /sys
+# FLOPPY IMAGE CODE - NO LONGER NEEDED
+#mount -t proc none /proc
+#mount -t sysfs none /sys
+#mdev -s
+#ln -s /proc/mounts /etc/mtab
+#mkdir -p /mnt /home
+#mount -t msdos -o rw /dev/fd0 /mnt
+#mkdir -p /mnt/data
+#mount --bind /mnt/data /home
+
+# Mount core file systems
+mount -t proc  proc  /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+
+# Required device nodes
+[ -c /dev/tty ]  || mknod -m 666 /dev/tty  c 5 0
+[ -c /dev/tty0 ] || mknod -m 620 /dev/tty0 c 4 0
+[ -c /dev/tty1 ] || mknod -m 620 /dev/tty1 c 4 1
+
+# Populate dynamic devices
+echo /sbin/mdev > /proc/sys/kernel/hotplug
 mdev -s
-ln -s /proc/mounts /etc/mtab
-mkdir -p /mnt /home
-mount -t msdos -o rw /dev/fd0 /mnt
-mkdir -p /mnt/data
-mount --bind /mnt/data /home
+
+ln -sf /proc/mounts /etc/mtab
+
+mkdir -p /home
 
 [ -r /etc/hostname ] && hostname "$(cat /etc/hostname)"
 
-export TERM=linux
-export TERMINFO=/usr/share/terminfo
-export HOME=/home
+export ENV=/etc/profile
 
 # Make terminal font green & show current dir
-export PS1='\033[32m\033[40m\w$ '
 printf '\033[32m\033[40m'
 
 clear
-cat welcome
+[ -f welcome ] && cat welcome
 cd /home
-
-while true; do
-    /bin/sh -i
-done

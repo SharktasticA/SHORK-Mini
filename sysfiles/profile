@@ -1,0 +1,8 @@
+export TERM=linux
+export TERMINFO=/usr/share/terminfo
+export HOME=/home
+export USER=root
+export LOGNAME=root
+export SHELL=/bin/sh
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PS1='\033[32m\033[40m\w$ '
