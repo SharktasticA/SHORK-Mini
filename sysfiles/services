@@ -1,0 +1,5 @@
+ftp     21/tcp
+ftp     21/udp
+http    80/tcp
+https   443/tcp
+ssh     22/tcp

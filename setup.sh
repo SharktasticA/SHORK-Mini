@@ -243,6 +243,8 @@ build_file_system()
     sudo cp $CURR_DIR/sysfiles/sfetch usr/bin/
     sudo cp $CURR_DIR/sysfiles/inittab etc/
     sudo cp $CURR_DIR/sysfiles/profile etc/
+    sudo cp $CURR_DIR/sysfiles/resolv.conf etc/
+    sudo cp $CURR_DIR/sysfiles/services etc/
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     mkdir -p usr/share/terminfo/src/
