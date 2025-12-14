@@ -34,4 +34,6 @@ udhcpc -i eth0 -s /usr/share/udhcpc/default.script > /dev/null 2>&1 &
 modprobe pcspkr 2>/dev/null || true
 
 clear
-[ -f welcome ] && printf "\033[37;44m" && cat welcome && printf "\033[0m"
+[ -f welcome ] && printf "\x1b[37;44m" && cat welcome && printf "\x1b[0m"
+
+printf "\n\n"

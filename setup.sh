@@ -143,6 +143,9 @@ get_busybox()
     echo -e "${GREEN}If further configuration is required, please run \"make ARCH=x86 menuconfig\"...${RESET}"
     #await_input
 
+    # Patch BusyBox to suppress banner and help message
+    sed -i 's/^#if !ENABLE_FEATURE_SH_EXTRA_QUIET/#if 0 \/* disabled ash banner *\//' shell/ash.c
+
     echo -e "${GREEN}Compiling BusyBox...${RESET}"
     sed -i "s|^CONFIG_CROSS_COMPILER_PREFIX=.*|CONFIG_CROSS_COMPILER_PREFIX=\"${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-\"|" .config
     sed -i "s|^CONFIG_SYSROOT=.*|CONFIG_SYSROOT=\"${CURR_DIR}/i486-linux-musl-cross\"|" .config
