@@ -2,11 +2,23 @@
 
 # Process arguments
 MINIMAL=false
+SKIP_PRE=false
+SKIP_KRN=false
+SKIP_BB=false
 
 for arg in "$@"; do
     case "$arg" in
         -m|--minimal)
             MINIMAL=true
+            ;;
+        -sp|--skip-prerequisites)
+            SKIP_PRE=true
+            ;;
+        -sk|--skip-kernel)
+            SKIP_KRN=true
+            ;;
+        -sb|--skip-busybox)
+            SKIP_BB=true
             ;;
     esac
 done
@@ -19,6 +31,7 @@ KERNEL_VER=6.14.11
 BUSYBOX_VER=1_36_1
 NANO_VER=5.7
 TNFTP_VER=20230507
+DROPBEAR_VER=2022.83
 
 
 
@@ -60,7 +73,7 @@ get_ncurses()
     [ -f ncurses-6.4.tar.gz ] || wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz
     [ -d ncurses-6.4 ] || tar xzvf ncurses-6.4.tar.gz
 
-    # Skip building if already successfully compiled
+    # Check if program already built, skip if so
     if [ ! -f "${CURR_DIR}/i486-linux-musl-cross/lib/libncursesw.a" ]; then
         echo -e "${GREEN}Compiling ncurses...${RESET}"
         cd ncurses-6.4
@@ -74,8 +87,7 @@ get_ncurses()
 # Download and compile Linux kernel
 get_kernel()
 {
-    echo -e "${GREEN}Downloading the latest Linux kernel that supports i486...${RESET}"
-    mkdir -p build
+    echo -e "${GREEN}Downloading the Linux kernel...${RESET}"
     if [ ! -d "linux" ]; then
         git clone --depth=1 --branch v$KERNEL_VER https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
         cd linux/
@@ -160,7 +172,7 @@ get_nano()
         cd nano-$NANO_VER/
     fi
 
-    # Skip building if already successfully compiled
+    # Check if program already built, skip if so
     if [ ! -f "${CURR_DIR}/build/root/usr/bin/nano" ]; then
         echo -e "${GREEN}Compiling nano...${RESET}"
 
@@ -198,7 +210,7 @@ get_tnftp()
         cd tnftp-$TNFTP_VER/
     fi
 
-    # Skip building if already successfully compiled
+    # Check if program already built, skip if so
     if [ ! -f "${CURR_DIR}/build/root/usr/bin/tnftp" ]; then
         echo -e "${GREEN}Compiling tnftp...${RESET}"
 
@@ -212,6 +224,39 @@ get_tnftp()
         ln -sf tnftp "${CURR_DIR}/build/root/usr/bin/ftp"
     else
         echo -e "${LIGHT_RED}tnftp already compiled, skipping...${RESET}"
+    fi
+}
+
+# Download and compile dropbear (SSH client only)
+get_dropbear()
+{
+    cd $CURR_DIR
+    echo -e "${GREEN}Downloading Dropbear...${RESET}"
+    [ -f DROPBEAR_$DROPBEAR_VER.tar.gz ] || wget https://github.com/mkj/dropbear/archive/refs/tags/DROPBEAR_$DROPBEAR_VER.tar.gz
+    if [ -d dropbear-DROPBEAR_$DROPBEAR_VER ]; then
+        echo -e "${YELLOW}Dropbear source is already present, cleaning up before proceeding...${RESET}"
+        cd dropbear-DROPBEAR_$DROPBEAR_VER
+        make clean || true
+    else
+        tar xzf DROPBEAR_$DROPBEAR_VER.tar.gz
+        cd dropbear-DROPBEAR_$DROPBEAR_VER
+    fi
+
+    # Check if program already built, skip if so
+    if [ ! -f "${CURR_DIR}/build/root/usr/bin/ssh" ]; then
+        echo -e "${GREEN}Compiling Dropbear...${RESET}"
+
+        ./configure --host=i486-linux-musl --prefix=/usr --disable-zlib --disable-loginfunc --disable-syslog --disable-lastlog --disable-utmp --disable-utmpx --disable-wtmp --disable-wtmpx CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc" AR="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-ar" RANLIB="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-ranlib" CFLAGS="-Os -march=i486 -static" LDFLAGS="-static"
+
+        make PROGRAMS="dbclient scp" -j$(nproc)
+        sudo make DESTDIR="${CURR_DIR}/build/root" install PROGRAMS="dbclient scp"
+
+        sudo mv "${CURR_DIR}/build/root/usr/bin/dbclient" "${CURR_DIR}/build/root/usr/bin/ssh"
+
+        sudo "${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-strip" "${CURR_DIR}/build/root/usr/bin/ssh"
+        sudo "${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-strip" "${CURR_DIR}/build/root/usr/bin/scp"
+    else
+        echo -e "${LIGHT_RED}Dropbear already compiled, skipping...${RESET}"
     fi
 }
 
@@ -247,6 +292,7 @@ build_file_system()
     sudo cp $CURR_DIR/sysfiles/resolv.conf etc/
     sudo cp $CURR_DIR/sysfiles/services etc/
     sudo cp $CURR_DIR/sysfiles/default.script usr/share/udhcpc/
+    sudo cp $CURR_DIR/sysfiles/passwd etc/
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     mkdir -p usr/share/terminfo/src/
@@ -360,14 +406,23 @@ echo -e "${BLUE}==============================="
 echo -e "=== SHORK Mini setup script ==="
 echo -e "===============================${RESET}"
 
+mkdir -p build
+
 if ! $MINIMAL; then
-    get_prerequisites
+    if ! $SKIP_PRE; then
+        get_prerequisites
+    fi
     get_i486_musl_cc
     get_ncurses
-    get_kernel
-    get_busybox
+    if ! $SKIP_KRN; then
+        get_kernel
+    fi
+    if ! $SKIP_BB; then
+        get_busybox
+    fi
     get_nano
     get_tnftp
+    get_dropbear
 else
     echo -e "${LIGHT_RED}Minimal mode specified, skipping to building the file system...${RESET}"
 fi
