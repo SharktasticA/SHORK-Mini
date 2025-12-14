@@ -5,4 +5,10 @@ export USER=root
 export LOGNAME=root
 export SHELL=/bin/sh
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
-export PS1='\033[32m\033[40m\w$ '
+export PS1='\033[37m\033[40m\w$ '
+
+fcol()
+{
+    /usr/libexec/fcol "$@" || return
+    exit
+}

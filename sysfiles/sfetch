@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# A small utility for listing main OS and hardware
+# specifications
+# Kali (sharktastica.co.uk)
+
 
 
 # Find user name

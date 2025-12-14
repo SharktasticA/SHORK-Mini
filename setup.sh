@@ -157,6 +157,25 @@ get_busybox()
     mv _install $CURR_DIR/build/root
 }
 
+# Build tic
+build_tic()
+{
+    # Check if program already built, skip if so
+    if [ ! -f "${CURR_DIR}/build/root/usr/bin/tic" ]; then
+        echo -e "${GREEN}Building tic...${RESET}"
+
+        cd $CURR_DIR/ncurses-6.4/
+        
+        ./configure --host=i486-linux-musl --prefix=/usr --with-normal --without-shared --without-debug --without-cxx --enable-widec CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc" CFLAGS="-Os -static"
+
+        make -C progs tic -j$(nproc)
+        sudo install -D progs/tic "$CURR_DIR/build/root/usr/bin/tic"
+        sudo "${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-strip" "$CURR_DIR/build/root/usr/bin/tic"
+    else
+        echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
+    fi
+}
+
 # Download and compile nano
 get_nano()
 {
@@ -267,7 +286,7 @@ build_file_system()
     cd $CURR_DIR/build/root
 
     echo -e "${GREEN}Make needed directories...${RESET}"
-    sudo mkdir -p {dev,proc,etc/init.d,sys,tmp,home,usr/share/udhcpc}
+    sudo mkdir -p {dev,proc,etc/init.d,sys,tmp,home,usr/share/udhcpc,usr/libexec}
 
     # FLOPPY IMAGE CODE - NO LONGER NEEDED
     #sudo mknod dev/console c 5 1
@@ -278,6 +297,7 @@ build_file_system()
     chmod +x $CURR_DIR/sysfiles/ldd
     chmod +x $CURR_DIR/sysfiles/sfetch
     chmod +x $CURR_DIR/sysfiles/default.script
+    chmod +x $CURR_DIR/sysfiles/fcol
 
     echo -e "${GREEN}Copy pre-defined files...${RESET}"
     sudo cp $CURR_DIR/sysfiles/welcome .
@@ -293,9 +313,10 @@ build_file_system()
     sudo cp $CURR_DIR/sysfiles/services etc/
     sudo cp $CURR_DIR/sysfiles/default.script usr/share/udhcpc/
     sudo cp $CURR_DIR/sysfiles/passwd etc/
+    sudo cp $CURR_DIR/sysfiles/fcol usr/libexec/
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
-    mkdir -p usr/share/terminfo/src/
+    sudo mkdir -p usr/share/terminfo/src/
     sudo cp $CURR_DIR/sysfiles/terminfo.src usr/share/terminfo/src/
     sudo tic -x -1 -o usr/share/terminfo usr/share/terminfo/src/terminfo.src
 
@@ -420,6 +441,7 @@ if ! $MINIMAL; then
     if ! $SKIP_BB; then
         get_busybox
     fi
+    build_tic
     get_nano
     get_tnftp
     get_dropbear

@@ -21,6 +21,7 @@ On Arch-based or Debian-based Linux, just run `setup.sh`. Once it has finished, 
 
 ### Commands for my custom tools 
 
+* fcol (changes terminal foreground colour)
 * sfetch (minimal "neofetch" clone)
 
 ## Overall process
@@ -53,16 +54,6 @@ On Arch-based or Debian-based Linux, just run `setup.sh`. Once it has finished, 
 * `configs`: Contains my Linux kernel and BusyBox `.config` files that are copied into their respective source code directories before compilation, and a helper when compiling a binary that should be static not dynamic.
 
 * `sysfiles`: Contains important system files to be copied into the Linux root file system before zipping.
-
-## Adjustments
-
-### Green terminal
-
-If you do not want the terminal environment to always be green-on-black, do the following, then run `setup.sh`:
-
-* In `sysfiles/profile`, replace the line `export PS1='\033[32m\033[40m\w$ '` with `export PS1='w$ '"`.
-* In `sysfiles/rc`, remove/comment out the line `printf '\033[32m\033[40m'` and replace the line `export PS1='\033[32m\033[40m\w$ '` with `export PS1='w$ '"`.
-* In `sysfiles/terminfo.src`, replace `sgr0=\E[0m\E[32m\E[40m` with `sgr0=\E[0m`.
 
 ## Notice & disclaimers
 
