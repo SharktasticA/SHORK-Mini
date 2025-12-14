@@ -13,18 +13,11 @@
 # Mount core file systems
 mount -t proc  proc  /proc
 mount -t sysfs sysfs /sys
-mount -t devtmpfs devtmpfs /dev
 
 # Required device nodes
 [ -c /dev/tty ]  || mknod -m 666 /dev/tty  c 5 0
 [ -c /dev/tty0 ] || mknod -m 620 /dev/tty0 c 4 0
 [ -c /dev/tty1 ] || mknod -m 620 /dev/tty1 c 4 1
-
-# Populate dynamic devices
-echo /sbin/mdev > /proc/sys/kernel/hotplug
-mdev -s
-
-ln -sf /proc/mounts /etc/mtab
 
 mkdir -p /home
 
