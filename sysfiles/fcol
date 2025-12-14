@@ -14,13 +14,13 @@ if [ $# -ne 1 ]; then
 fi
 
 case "$1" in
-    blue)     FG="0;1;34" ;;
-    cyan)     FG="0;36" ;;
-    green)    FG="0;32" ;;
-    magenta)  FG="0;35" ;;
-    red)      FG="0;31" ;;
-    white)    FG="0;37" ;;
-    yellow)   FG="0;1;33" ;;
+    blue)     COL="0;1;34" ;;
+    cyan)     COL="0;36" ;;
+    green)    COL="0;32" ;;
+    magenta)  COL="0;35" ;;
+    red)      COL="0;31" ;;
+    white)    COL="0;37" ;;
+    yellow)   COL="0;1;33" ;;
     *)
         echo "Invalid colour: $1"
         exit 1
@@ -29,11 +29,11 @@ esac
 
 
 
-sed -i "s/\\\\033\[[0-9;]*m/\\\\033[${FG}m/g" /etc/profile
-sed -i "s/\\\\033\[[0-9;]*m/\\\\033[${FG}m/g" /etc/init.d/rc
-sed -i "s/\\\\E\[[0-9;]*m/\\\\E[${FG}m/g" /usr/share/terminfo/src/terminfo.src
+sed -i "s/\\\\033\[[0-9;]*m/\\\\033[${COL}m/g" /etc/profile
+sed -i "s/\\\\033\[[0-9;]*m/\\\\033[${COL}m/g" /etc/init.d/rc
+sed -i 's|sgr0=\\E\[0m\\E\[[0-9;]*m|sgr0=\\E[0m\\E['"$COL"'m|' /usr/share/terminfo/src/terminfo.src
 tic -x -1 -o usr/share/terminfo usr/share/terminfo/src/terminfo.src
 
-echo "Set terminal colour to $1. You may need to restart for changes to fully take effect."
+#echo "Set terminal colour to $1. You may need to restart for changes to fully take effect."
 
 kill -TERM "$PPID"

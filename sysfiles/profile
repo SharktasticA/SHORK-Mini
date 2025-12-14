@@ -10,5 +10,6 @@ export PS1='\033[37m\033[40m\w$ '
 fcol()
 {
     /usr/libexec/fcol "$@" || return
+    sync
     exit
 }
