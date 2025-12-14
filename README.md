@@ -6,6 +6,14 @@ A minimal Linux distribution developed originally from [FLOPPINUX's](https://git
 
 On Arch-based or Debian-based Linux, just run `setup.sh`. Once it has finished, a `build` directory with a `shorkmini.img` disk image file inside should be present and ready to be imaged onto a real disk drive.
 
+## Capabilities
+
+### Bundled software
+
+* nano
+* sfetch (my custom minimal "neofetch" clone)
+* tnftp
+
 ## Overall process
 
 1. Installs needed packages on the host system (user is prompted to choose Arch or Debian-based).

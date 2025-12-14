@@ -1,0 +1,11 @@
+#!/bin/sh
+
+case "$1" in
+  bound)
+    ifconfig "$interface" "$ip" netmask "$subnet" up > /dev/null 2>&1 &
+
+    if [ -n "$router" ]; then
+      route add default gw "$router" "$interface" > /dev/null 2>&1 &
+    fi
+    ;;
+esac

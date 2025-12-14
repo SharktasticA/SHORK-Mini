@@ -35,6 +35,9 @@ export ENV=/etc/profile
 # Make terminal font green & show current dir
 printf '\033[32m\033[40m'
 
+ifconfig eth0 up
+udhcpc -i eth0 -s /usr/share/udhcpc/default.script > /dev/null 2>&1 &
+
 clear
 [ -f welcome ] && cat welcome
 cd /home

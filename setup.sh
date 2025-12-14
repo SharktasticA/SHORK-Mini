@@ -222,7 +222,7 @@ build_file_system()
     cd $CURR_DIR/build/root
 
     echo -e "${GREEN}Make needed directories...${RESET}"
-    mkdir -p {dev,proc,etc/init.d,sys,tmp,home}
+    sudo mkdir -p {dev,proc,etc/init.d,sys,tmp,home,usr/share/udhcpc}
 
     # FLOPPY IMAGE CODE - NO LONGER NEEDED
     #sudo mknod dev/console c 5 1
@@ -232,6 +232,7 @@ build_file_system()
     chmod +x $CURR_DIR/sysfiles/rc
     chmod +x $CURR_DIR/sysfiles/ldd
     chmod +x $CURR_DIR/sysfiles/sfetch
+    chmod +x $CURR_DIR/sysfiles/default.script
 
     echo -e "${GREEN}Copy pre-defined files...${RESET}"
     sudo cp $CURR_DIR/sysfiles/welcome .
@@ -245,6 +246,7 @@ build_file_system()
     sudo cp $CURR_DIR/sysfiles/profile etc/
     sudo cp $CURR_DIR/sysfiles/resolv.conf etc/
     sudo cp $CURR_DIR/sysfiles/services etc/
+    sudo cp $CURR_DIR/sysfiles/default.script usr/share/udhcpc/
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     mkdir -p usr/share/terminfo/src/
@@ -301,10 +303,19 @@ build_disk_img()
     # Create the image
     dd if=/dev/zero of=shorkmini.img bs=1M count="$mb" status=progress
 
-    # Partition the image 
+    # Shrinks the image so it ends on a whole CHS cylinder boundary
+    SECTORS_PER_CYL=$((16*63))
+    bytes=$(stat -c %s shorkmini.img)
+    sectors=$((bytes / 512))
+    aligned_sectors=$(( (sectors / SECTORS_PER_CYL) * SECTORS_PER_CYL ))
+    aligned_bytes=$((aligned_sectors * 512))
+    truncate -s "$aligned_bytes" shorkmini.img
+
+    # Partition the image
     sudo sfdisk shorkmini.img <<EOF
 label: dos
-1 : start=2048, type=83, bootable
+unit: sectors
+1 : start=2048, size=$((aligned_sectors - 2048)), type=83, bootable
 EOF
 
     # Expose partition
