@@ -68,8 +68,8 @@ get_i486_musl_cc()
 # Download and compile ncurses (required for other programs)
 get_ncurses()
 {
-    echo -e "${GREEN}Building ncurses...${RESET}"
     cd "$CURR_DIR"
+    echo -e "${GREEN}Building ncurses...${RESET}"
     [ -f ncurses-6.4.tar.gz ] || wget https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz
     [ -d ncurses-6.4 ] || tar xzvf ncurses-6.4.tar.gz
 
@@ -87,6 +87,7 @@ get_ncurses()
 # Download and compile Linux kernel
 get_kernel()
 {
+    cd "$CURR_DIR"
     echo -e "${GREEN}Downloading the Linux kernel...${RESET}"
     if [ ! -d "linux" ]; then
         git clone --depth=1 --branch v$KERNEL_VER https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
@@ -126,12 +127,12 @@ get_kernel()
     echo -e "${GREEN}Compiling Linux kernel...${RESET}"
     make ARCH=x86 bzImage -j$(nproc)
     sudo mv arch/x86/boot/bzImage ../build || true
-    cd $CURR_DIR
 }
 
 # Download and compile BusyBox
 get_busybox()
 {
+    cd $CURR_DIR
     echo -e "${GREEN}Downloading BusyBox...${RESET}"
     [ -f $BUSYBOX_VER.tar.gz ] || wget https://github.com/mirror/busybox/archive/refs/tags/$BUSYBOX_VER.tar.gz
     [ -d busybox-$BUSYBOX_VER ] || tar xzvf $BUSYBOX_VER.tar.gz
@@ -163,6 +164,7 @@ get_busybox()
 # Build tic
 build_tic()
 {
+    cd $CURR_DIR
     # Check if program already built, skip if so
     if [ ! -f "${CURR_DIR}/build/root/usr/bin/tic" ]; then
         echo -e "${GREEN}Building tic...${RESET}"
