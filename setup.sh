@@ -363,9 +363,10 @@ build_disk_img()
 
     # Calculate size for the image
     # OVERHEAD is provided to take into account metadata, partition alignment, bootloader structures, etc.
-    OVERHEAD=0
     krn_bytes=$(stat -c %s bzImage)
     fs_bytes=$(du -sb root/ | cut -f1)
+
+    OVERHEAD=$(( (krn_bytes + fs_bytes + 1024*1024 - 1) / (1024*1024) ))
 
     total=$((krn_bytes + fs_bytes + OVERHEAD*1024*1024))
     mb=$(( (total + 1024*1024 - 1) / (1024*1024) ))
