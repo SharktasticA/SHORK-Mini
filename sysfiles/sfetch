@@ -6,6 +6,19 @@
 
 
 
+# Find RAM usage and total
+read MEM_TOTAL MEM_USED <<EOF
+$(free | awk '/Mem:/ {printf "%d %.1f\n", $2/1024, $3/1024}')
+EOF
+
+if [ -n "$MEM_TOTAL" ] && [ -n "$MEM_USED" ]; then
+    MEMORY="${MEM_USED}MB / ${MEM_TOTAL}MB"
+else
+    MEMORY="unknown"
+fi
+
+
+
 # Find user name
 if [ -n "$USER" ]; then
     USER_NAME="$USER"
@@ -108,19 +121,6 @@ CPU="${CPU_NAME} (${CORE_COUNT}C/${THREAD_COUNT}T)"
 # Find GPU name
 GPU="$(lspci | grep -i 'vga' | awk -F': ' '{print $2}')"
 [ -z "$GPU" ] && GPU="unknown"
-
-
-
-# Find RAM usage and total
-read MEM_TOTAL MEM_USED <<EOF
-$(free | awk '/Mem:/ {printf "%d %.1f\n", $2/1024, $3/1024}')
-EOF
-
-if [ -n "$MEM_TOTAL" ] && [ -n "$MEM_USED" ]; then
-    MEMORY="${MEM_USED}MB / ${MEM_TOTAL}MB"
-else
-    MEMORY="unknown"
-fi
 
 
 
