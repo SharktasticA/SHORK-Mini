@@ -49,7 +49,7 @@ get_prerequisites()
                 echo -e "${GREEN}Install needed host packages...${RESET}"
                 sudo dpkg --add-architecture i386
                 sudo apt-get update
-                sudo apt-get install -y libncurses-dev bc flex bison syslinux cpio libncurses-dev:i386 dosfstools texinfo extlinux || true
+                sudo apt-get install -y libncurses-dev bc flex bison syslinux cpio libncurses-dev:i386 dosfstools texinfo extlinux qemu-utils || true
                 export PATH="$PATH:/usr/sbin:/sbin"
                 break ;;
             *)
@@ -323,9 +323,10 @@ build_file_system()
     echo -e "${GREEN}Configure permissions...${RESET}"
     chmod +x $CURR_DIR/sysfiles/rc
     chmod +x $CURR_DIR/sysfiles/ldd
-    chmod +x $CURR_DIR/sysfiles/sfetch
     chmod +x $CURR_DIR/sysfiles/default.script
-    chmod +x $CURR_DIR/sysfiles/fcol
+    chmod +x $CURR_DIR/utils/shorkfetch
+    chmod +x $CURR_DIR/utils/shorkcol
+    chmod +x $CURR_DIR/utils/shorkhelp
 
     echo -e "${GREEN}Copy pre-defined files...${RESET}"
     sudo cp $CURR_DIR/sysfiles/welcome .
@@ -334,14 +335,15 @@ build_file_system()
     sudo cp $CURR_DIR/sysfiles/os-release etc/
     sudo cp $CURR_DIR/sysfiles/rc etc/init.d/
     sudo cp $CURR_DIR/sysfiles/ldd usr/bin/
-    sudo cp $CURR_DIR/sysfiles/sfetch usr/bin/
     sudo cp $CURR_DIR/sysfiles/inittab etc/
     sudo cp $CURR_DIR/sysfiles/profile etc/
     sudo cp $CURR_DIR/sysfiles/resolv.conf etc/
     sudo cp $CURR_DIR/sysfiles/services etc/
     sudo cp $CURR_DIR/sysfiles/default.script usr/share/udhcpc/
     sudo cp $CURR_DIR/sysfiles/passwd etc/
-    sudo cp $CURR_DIR/sysfiles/fcol usr/libexec/
+    sudo cp $CURR_DIR/utils/shorkfetch usr/bin/
+    sudo cp $CURR_DIR/utils/shorkcol usr/libexec/
+    sudo cp $CURR_DIR/utils/shorkhelp usr/bin/
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     sudo mkdir -p usr/share/terminfo/src/

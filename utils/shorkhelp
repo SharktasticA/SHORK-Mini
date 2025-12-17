@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# A small utility that informs about SHORK Mini's capabilities
+# Kali (sharktastica.co.uk)
+
+echo "BusyBox commands
+----------------
+awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date,
+echo, find, free, ftpget, ftpput, grep, hostname, ifconfig, kill, less, ls, man,
+mkdir, mknod, mount, mv, nohup, ping, pkill, printf, pwd, readlink, rm, rmdir,
+route, sed, showkey, sleep, sync, tee, test, top, touch, udhcpc, umount, uname,
+vi, wget, which
+
+Included software
+-----------------
+ftp, nano, scp, ssh
+
+SHORK Mini utilities
+--------------------
+shorkcol, shorkfetch, shorkhelp"

@@ -25,10 +25,11 @@ On Arch-based or Debian-based Linux, just run `setup.sh`. Once it has finished, 
 * scp (SCP client, Dropbear)
 * ssh (SSH client, Dropbear)
 
-### Included tools 
+### Included custom utilities 
 
-* fcol (changes terminal foreground colour)
-* sfetch (minimal "neofetch" clone)
+* shorkcol (changes terminal foreground colour)
+* shorkfetch (displays basic system and environment info)
+* shorkhelp (shows a command, software & utilities list)
 
 ## Overall process
 
