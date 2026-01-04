@@ -1,6 +1,6 @@
 # SHORK Mini
 
-A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for my '90s IBM ThinkPads with 486SX or better processors. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, the SHORK Mini does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality. This repo stores my ideal configurations and largely automates the build and compilation process.
+A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, specifically with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, the SHORK Mini does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality. This repo stores my ideal configurations and largely automates the build and compilation process.
 
 <img src="screenshots/20251231_86box_cold_boot.webp" width="512px">
 
