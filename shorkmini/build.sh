@@ -47,7 +47,7 @@ get_prerequisites()
         case $host in
             "Arch based")
                 echo -e "${GREEN}Install needed host packages...${RESET}"
-                sudo pacman -S ncurses bc flex bison syslinux cpio || true
+                sudo pacman -Sy --needed bc bison bzip2 cpio dosfstools e2fsprogs flex git make multipath-tools ncurses qemu-img syslinux systemd texinfo util-linux wget xz || true
                 break ;;
             "Debian based")
                 echo -e "${GREEN}Install needed host packages...${RESET}"
