@@ -34,6 +34,9 @@ confirm()
 MINIMAL=false
 SKIP_KRN=false
 SKIP_BB=false
+SKIP_NANO=false
+SKIP_TNFTP=false
+SKIP_DROPBEAR=false
 ALWAYS_BUILD=false
 DONT_DEL_BUILD=false
 IS_ARCH=false
@@ -52,6 +55,15 @@ for arg in "$@"; do
         -sb|--skip-busybox)
             SKIP_BB=true
             DONT_DEL_BUILD=true
+            ;;
+        -snn|--skip-nano)
+            SKIP_NANO=true
+            ;;
+        -stp|--skip-tnftp)
+            SKIP_TNFTP=true
+            ;;
+        -sdb|--skip-dropbear)
+            SKIP_DROPBEAR=true
             ;;
         -ab|--always-build)
             ALWAYS_BUILD=true
@@ -270,26 +282,6 @@ get_busybox()
     mv _install $CURR_DIR/build/root
 }
 
-# Build tic
-build_tic()
-{
-    cd $CURR_DIR
-    # Check if program already built, skip if so
-    if [ ! -f "${CURR_DIR}/build/root/usr/bin/tic" ]; then
-        echo -e "${GREEN}Building tic...${RESET}"
-
-        cd $CURR_DIR/ncurses-6.4/
-        
-        ./configure --host=i486-linux-musl --prefix=/usr --with-normal --without-shared --without-debug --without-cxx --enable-widec CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc" CFLAGS="-Os -static"
-
-        make -C progs tic -j$(nproc)
-        sudo install -D progs/tic "$CURR_DIR/build/root/usr/bin/tic"
-        sudo "${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-strip" "$CURR_DIR/build/root/usr/bin/tic"
-    else
-        echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
-    fi
-}
-
 # Download and compile nano
 get_nano()
 {
@@ -403,6 +395,8 @@ get_dropbear()
     if [ ! -f "${CURR_DIR}/build/root/usr/bin/ssh" ]; then
         echo -e "${GREEN}Compiling Dropbear...${RESET}"
 
+        unset LIBS
+
         ./configure --host=i486-linux-musl --prefix=/usr --disable-zlib --disable-loginfunc --disable-syslog --disable-lastlog --disable-utmp --disable-utmpx --disable-wtmp --disable-wtmpx CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc" AR="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-ar" RANLIB="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-ranlib" CFLAGS="-Os -march=i486 -static" LDFLAGS="-static"
 
         make PROGRAMS="dbclient scp" -j$(nproc)
@@ -414,6 +408,26 @@ get_dropbear()
         sudo "${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-strip" "${CURR_DIR}/build/root/usr/bin/scp"
     else
         echo -e "${LIGHT_RED}Dropbear already compiled, skipping...${RESET}"
+    fi
+}
+
+# Build tic
+build_tic()
+{
+    cd $CURR_DIR
+    # Check if program already built, skip if so
+    if [ ! -f "${CURR_DIR}/build/root/usr/bin/tic" ]; then
+        echo -e "${GREEN}Building tic...${RESET}"
+
+        cd $CURR_DIR/ncurses-6.4/
+        
+        ./configure --host=i486-linux-musl --prefix=/usr --with-normal --without-shared --without-debug --without-cxx --enable-widec CC="${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-gcc" CFLAGS="-Os -static"
+
+        make -C progs tic -j$(nproc)
+        sudo install -D progs/tic "$CURR_DIR/build/root/usr/bin/tic"
+        sudo "${CURR_DIR}/i486-linux-musl-cross/bin/i486-linux-musl-strip" "$CURR_DIR/build/root/usr/bin/tic"
+    else
+        echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
     fi
 }
 
@@ -595,10 +609,16 @@ if ! $MINIMAL; then
     if ! $SKIP_BB; then
         get_busybox
     fi
+    if ! $SKIP_NANO; then
+        get_nano
+    fi
+    if ! $SKIP_TNFTP; then
+        get_tnftp
+    fi
+    if ! $SKIP_DROPBEAR; then
+        get_dropbear
+    fi
     build_tic
-    get_nano
-    get_tnftp
-    get_dropbear
 else
     echo -e "${LIGHT_RED}Minimal mode specified, skipping to building the file system...${RESET}"
 fi
