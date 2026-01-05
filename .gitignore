@@ -10,3 +10,4 @@ tnftp-*/
 dropbear-*/
 lynx*/
 images*/
+__pycache__/

@@ -12,3 +12,4 @@ sudo rm *.tar.gz || true
 sudo rm *.tar.xz || true
 sudo rm *.tgz || true
 sudo rm -r images/ || true
+sudo rm -r __pycache__/ || true

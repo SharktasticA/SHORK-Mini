@@ -122,8 +122,63 @@ CPU="${CPU_NAME} (${CORE_COUNT}C/${THREAD_COUNT}T)"
 
 
 # Find GPU name
-GPU="$(lspci | grep -i 'vga' | awk -F': ' '{print $2}')"
-[ -z "$GPU" ] && GPU="unknown"
+GPU=""
+if lspci >/dev/null 2>&1 && [ -r /usr/share/misc/pci.ids ]; then
+    VID=""
+    DID=""
+
+    # Find a VGA compatible controller (class 03xx) for BusyBox's lspci output style
+    PCI_LINE="$(lspci 2>/dev/null | awk '$2=="Class" && substr($3,1,2)=="03" {print; exit}')"
+    if [ -n "$PCI_LINE" ]; then
+        VID="$(echo "$PCI_LINE" | awk '{split($4,a,":"); print a[1]}')"
+        DID="$(echo "$PCI_LINE" | awk '{split($4,a,":"); print a[2]}')"
+    else
+        # Fallback to standard pciutils' lspci output style
+        PCI_LINE="$(lspci -n | awk '$2=="0300:" { print; exit }')"
+        if [ -n "$PCI_LINE" ]; then
+            ID="$(echo "$PCI_LINE" | awk '{print $3}')"
+            VID="${ID%%:*}"
+            DID="${ID##*:}"
+        fi
+    fi
+
+    VENDOR=""
+    DEVICE=""
+
+    # Find vendor and device name by querying pci.ids
+    if [ -n "$VID" ] && [ -n "$DID" ]; then
+        VENDOR="$(
+            awk -v vid="$VID" '
+                $1 == vid {
+                    sub("^[0-9a-fA-F]{4}[[:space:]]+", "")
+                    print
+                    exit
+                }
+            ' /usr/share/misc/pci.ids
+        )"
+
+        DEVICE="$(
+            awk -v vid="$VID" -v did="$DID" '
+                $1 == vid {
+                    in_vendor = 1
+                    next
+                }
+                in_vendor && /^[0-9a-fA-F]{4}[[:space:]]/ {
+                    in_vendor = 0
+                }
+                in_vendor && /^\t/ && $1 == did {
+                    sub("^\t[0-9a-fA-F]{4}[[:space:]]+", "")
+                    print
+                    exit
+                }
+            ' /usr/share/misc/pci.ids
+        )"
+    fi
+
+    if [ -n "$VENDOR" ] && [ -n "$DEVICE" ]; then
+        GPU="$VENDOR $DEVICE"
+    fi
+fi
 
 
 
@@ -135,6 +190,6 @@ printf "Kernel:  %s\n" "$KERNEL"
 printf "Uptime:  %s\n" "$UPTIME"
 printf "Shell:   %s\n" "$SHELL_NAME"
 printf "CPU:     %s\n" "$CPU"
-printf "GPU:     %s\n" "$GPU"
+[ -n "$GPU" ] && printf "GPU:     %s\n" "$GPU"
 printf "Memory:  %s\n" "$MEMORY"
 printf "\n"

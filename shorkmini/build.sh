@@ -37,6 +37,7 @@ SKIP_BB=false
 SKIP_NANO=false
 SKIP_TNFTP=false
 SKIP_DROPBEAR=false
+SKIP_PCIIDS=false
 ALWAYS_BUILD=false
 DONT_DEL_BUILD=false
 IS_ARCH=false
@@ -64,6 +65,9 @@ for arg in "$@"; do
             ;;
         -sdb|--skip-dropbear)
             SKIP_DROPBEAR=true
+            ;;
+        -spi|--skip-pciids)
+            SKIP_PCIIDS=true
             ;;
         -ab|--always-build)
             ALWAYS_BUILD=true
@@ -121,7 +125,7 @@ delete_build_dir()
 install_arch_prerequisites()
 {
     echo -e "${GREEN}Installing prerequisite packages for an Arch-based system...${RESET}"
-    sudo pacman -Sy --needed bc base-devel bison bzip2 cpio dosfstools e2fsprogs flex git make multipath-tools ncurses qemu-img syslinux systemd texinfo util-linux wget xz || true
+    sudo pacman -Sy --needed bc base-devel bison bzip2 cpio dosfstools e2fsprogs flex git make multipath-tools ncurses pciutils python qemu-img syslinux systemd texinfo util-linux wget xz || true
 }
 
 install_debian_prerequisites()
@@ -129,7 +133,7 @@ install_debian_prerequisites()
     echo -e "${GREEN}Installing prerequisite packages for a Debian-based system...${RESET}"
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install -y bc bison bzip2 cpio dosfstools e2fsprogs extlinux fdisk flex git kpartx libncurses-dev:i386 make qemu-utils syslinux texinfo udev wget xz-utils || true
+    sudo apt-get install -y bc bison bzip2 cpio dosfstools e2fsprogs extlinux fdisk flex git kpartx libncurses-dev:i386 make pciutils python3 qemu-utils syslinux texinfo udev wget xz-utils || true
     export PATH="$PATH:/usr/sbin:/sbin"
 }
 
@@ -501,14 +505,22 @@ build_file_system()
         sudo sed -i '/^Included software[[:space:]]*$/,+2d' "usr/bin/shorkhelp"
     fi
 
+    if ! $SKIP_PCIIDS; then
+        # Include PCI IDs for shorkfetch's GPU identification
+        # **Work offloaded to Python**
+        cd $CURR_DIR/
+        sudo python3 -c "from helpers import *; build_pci_ids()"
+    fi
+
+    cd $CURR_DIR/build/root
     sudo chown -R root:root .
-    cd $CURR_DIR/build/
 }
 
 # Build a disk drive image containing our system
 build_disk_img()
 {
     echo -e "${GREEN}Creating a disk drive image containing this system...${RESET}"
+    cd $CURR_DIR/build/
 
     # Cleans up all temporary block-device states when script exists, fails or interrupted
     cleanup()
@@ -613,6 +625,14 @@ fix_img_perms()
     fi
 }
 
+# Cleans up any stale mounts and block-device mappings left by image builds
+clean_stale_mounts()
+{
+    sudo umount -lf /mnt/shorkmini 2>/dev/null
+    sudo losetup -a | grep shorkmini | cut -d: -f1 | xargs -r sudo losetup -d
+    sudo dmsetup remove_all 2>/dev/null
+}
+
 
 
 # Intro message
@@ -654,3 +674,4 @@ build_file_system
 build_disk_img
 convert_disk_img
 fix_img_perms
+clean_stale_mounts

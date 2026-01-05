@@ -16,6 +16,8 @@ If you are using an Arch or Debian-based Linux, run `build.sh` whilst in the `sh
 
 If you are using Windows, macOS, a Linux distribution that has not been tested with native compilation, or want some kind of "sandbox" on this process, you can try Dockerised compilation instead. It will create a Docker container with a minimal Debian 13 installation that is active for just the lifetime of the build process. Run `docker-compose up` whilst in this repository's directory (not `shorkmini`).
 
+Script parameters can also be used for Dockerised compilation, placed in a list under `services` -> `shorkmini-build` -> `command` inside `docker-compose.yml`. If a run has already been made, you may need to run `docker-compose up --build` instead before any changes are applied.
+
 ### After compilation
 
 Once compiled, two disk drive images - `shorkmini.img` and `shorkmini.vmdk` - should be present in the `images` folder. The former can be used as-is with emulation software like 86Box or written to a real drive using (e.g.) `dd`, and the latter can be used as-is with VMware Workstation or Player. Please refer to the "Running" section for suggested virtual machine configurations to get started with SHORK Mini.
@@ -63,25 +65,28 @@ It is recommended to move or copy the images out of this directory before extens
 
 * `build.sh`: Contains the complete download and compilation process that reproduces a `shorkmini.img` disk drive image. The following parameters are supported:
 
-    * `-ab` and `--always-build` parameter can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
+    * **Always (re)build** (`-ab`, `--always-build`): can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
         * This does nothing if the "skip kernel" parameter is also used.
-    * `-ia` and `--is-arch` parameter can be used skip the host Linux distribution selection prompt and the build script will assume it is running on an Arch-based system.
+    * **Is Arch** (`-ia`, `--is-arch`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on an Arch-based system.
         * This does nothing if the "minimal" parameter is also used.
-    * `-id` and `--is-debian` parameter can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
+    * **Is Debian** (`-id`, `--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
         * This does nothing if the "minimal" parameter is also used.
-    * `-m` and `--minimal` parameters can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive image after only making changes to `sysfiles`.* **
-    * `-sk` and `--skip-kernel` parameters can be used to skip downloading and compiling the kernel.* **
+    * **Minimal** (`-m`, `--minimal`): can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive images after only making changes to `sysfiles`.* **
+    * **Skip kernel** (`-sk`, `--skip-kernel`): can be used to skip downloading and compiling the kernel.* **
         * This does nothing if the "minimal" parameter is also used.
-    * `-sb` and `--skip-busybox` parameters can be used to skip downloading and compiling BusyBox.* **
+    * **Skip BusyBox** (`-sb`, `--skip-busybox`): can be used to skip downloading and compiling BusyBox.* **
         * This does nothing if the "minimal" parameter is also used.
-    * `-sdb` and `--skip-dropbear` parameters can be used to skip downloading and compiling Dropbear.
-        * This will save ~364KB and ~3 files on the root file system. SHORK Mini will lose SCP and SSH capabilities.
+    * **Skip Dropbear** (`-sdb`, `--skip-dropbear`): can be used to skip downloading and compiling Dropbear.
+        * This will save ~364KB and 3 files on the root file system. SHORK Mini will lose SCP and SSH capabilities.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * `-snn` and `--skip-nano` parameters can be used to skip downloading and compiling nano.
-        * This will save ~1MB and ~60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
+    * **Skip nano** (`-snn`, `--skip-nano`): can be used to skip downloading and compiling nano.
+        * This will save ~1MB and 60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * `-stp` and `--skip-tnftp` parameters can be used to skip downloading and compiling tnftp.
-        * This will save ~311KB and ~3 files on the root file system. SHORK Mini will lose FTP capabilities.
+    * **Skip pci.ids** (`-spi`, `--skip-pciids`): can be used to skip building and including a `pci.ids` file.
+        * This will save ~75-100KB and one file on the root file system. `shorkfetch` will lose its "GPU" field.
+        * GPU identification on some 486SX configurations can take a while, so excluding this may be desirable to speed up `shorkfetch` significantly in such scenarios.
+    * **Skip tnftp** (`-stp`, `--skip-tnftp`): can be used to skip downloading and compiling tnftp.
+        * This will save ~311KB and 3 files on the root file system. SHORK Mini will lose FTP capabilities.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
 
 * `clean.sh`: Deletes anything that was downloaded, created or generated by `build.sh`.
