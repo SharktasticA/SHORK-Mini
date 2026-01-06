@@ -29,8 +29,12 @@ export ENV=/etc/profile
 printf '\033[37m\033[40m'
 
 # Set up networking
-ifconfig eth0 up
-udhcpc -i eth0 -s /usr/share/udhcpc/default.script > /dev/null 2>&1 &
+if [ -d /sys/class/net/eth0 ] && [ -e /sys/class/net/eth0/device ]; then
+    ifconfig eth0 up
+    if ifconfig eth0 2>/dev/null | grep -q "UP"; then
+        udhcpc -i eth0 -n -t 3 -T 2 -s /usr/share/udhcpc/default.script > /dev/null 2>&1 &
+    fi
+fi
 
 # Set up PC speaker
 modprobe pcspkr 2>/dev/null || true

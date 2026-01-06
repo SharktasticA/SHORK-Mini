@@ -10,13 +10,13 @@ Please read "Notice & disclaimers" at the end of this readme before proceeding.
 
 ### Native compilation
 
-If you are using an Arch or Debian-based Linux, run `build.sh` whilst in the `shorkmini` directory and answer any prompts given throughout the process. Script parameters are listed in the "Scripts" section of this readme that can be used to reduce the need for the aforementioned prompts.
+If you are using an Arch or Debian-based Linux, run `build.sh` whilst in the `shorkmini` directory and answer any prompts given throughout the process. Script parameters are listed in the "Scripts & parameters" section of this readme that can be used to reduce the need for the aforementioned prompts.
 
 ### Dockerised compilation
 
 If you are using Windows, macOS, a Linux distribution that has not been tested with native compilation, or want some kind of "sandbox" on this process, you can try Dockerised compilation instead. It will create a Docker container with a minimal Debian 13 installation that is active for just the lifetime of the build process. Run `docker-compose up` whilst in this repository's directory (not `shorkmini`).
 
-Script parameters can also be used for Dockerised compilation, placed in a list under `services` -> `shorkmini-build` -> `command` inside `docker-compose.yml`. If a run has already been made, you may need to run `docker-compose up --build` instead before any changes are applied.
+Script parameters as seen in the "Scripts & parameters" section can also be used for Dockerised compilation, placed in a list under `services` -> `shorkmini-build` -> `command` inside `docker-compose.yml`. If a run has already been made, you may need to run `docker-compose up --build` instead before any changes are applied.
 
 ### After compilation
 
@@ -72,6 +72,8 @@ It is recommended to move or copy the images out of this directory before extens
     * **Is Debian** (`-id`, `--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
         * This does nothing if the "minimal" parameter is also used.
     * **Minimal** (`-m`, `--minimal`): can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive images after only making changes to `sysfiles`.* **
+    * **No boot menu** (`-nm`, `--no-menu`): can be used to remove SHORK Mini's boot menu.
+        * This will save ~524KB to the boot file system. SHORK Mini will no longer provide the option to boot in a debug/verbose mode.
     * **Skip kernel** (`-sk`, `--skip-kernel`): can be used to skip downloading and compiling the kernel.* **
         * This does nothing if the "minimal" parameter is also used.
     * **Skip BusyBox** (`-sb`, `--skip-busybox`): can be used to skip downloading and compiling BusyBox.* **

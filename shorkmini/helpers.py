@@ -38,15 +38,13 @@ def build_pci_ids():
 
     with open(input, "r", encoding="utf-8", errors="replace") as file:
         for line in file:
-            line = line.strip()
-
-            if not line:
+            stripped = line.strip()
+            if not stripped:
                 continue
-            
-            if line.startswith("#"):
+            if stripped.startswith("#"):
                 continue
 
-            lower = line.lower()
+            lower = stripped.lower()
             if any(term in lower for term in term_blacklist) and not any(term in lower for term in term_whitelist):
                 continue
 

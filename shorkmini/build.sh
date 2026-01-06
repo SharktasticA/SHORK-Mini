@@ -1,5 +1,13 @@
 #!/bin/bash
 
+######################################################
+## SHORK Mini build script                          ##
+######################################################
+## Kali (sharktastica.co.uk)                        ##
+######################################################
+
+
+
 set -e
 
 
@@ -11,7 +19,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 RESET='\033[0m'
-CURR_DIR=$(pwd)
 
 
 
@@ -42,6 +49,7 @@ ALWAYS_BUILD=false
 DONT_DEL_BUILD=false
 IS_ARCH=false
 IS_DEBIAN=false
+NO_MENU=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -60,7 +68,7 @@ for arg in "$@"; do
         -snn|--skip-nano)
             SKIP_NANO=true
             ;;
-        -stp|--skip-tnftp)
+        -CURR_DIRstp|--skip-tnftp)
             SKIP_TNFTP=true
             ;;
         -sdb|--skip-dropbear)
@@ -79,6 +87,9 @@ for arg in "$@"; do
         -id|--is-debian)
             IS_ARCH=false
             IS_DEBIAN=true
+            ;;
+        -nm|--no-menu)
+            NO_MENU=true
             ;;
     esac
 done
@@ -125,7 +136,7 @@ delete_build_dir()
 install_arch_prerequisites()
 {
     echo -e "${GREEN}Installing prerequisite packages for an Arch-based system...${RESET}"
-    sudo pacman -Sy --needed bc base-devel bison bzip2 cpio dosfstools e2fsprogs flex git make multipath-tools ncurses pciutils python qemu-img syslinux systemd texinfo util-linux wget xz || true
+    sudo pacman -Syu --noconfirm --needed bc base-devel bison bzip2 cpio dosfstools e2fsprogs flex git make multipath-tools ncurses pciutils python qemu-img syslinux systemd texinfo util-linux wget xz || true
 }
 
 install_debian_prerequisites()
@@ -508,6 +519,7 @@ build_file_system()
     if ! $SKIP_PCIIDS; then
         # Include PCI IDs for shorkfetch's GPU identification
         # **Work offloaded to Python**
+        echo -e "${GREEN}Generating pci.ids database...${RESET}"
         cd $CURR_DIR/
         sudo python3 -c "from helpers import *; build_pci_ids()"
     fi
@@ -589,7 +601,37 @@ EOF
     sudo cp bzImage /mnt/shorkmini/boot/bzImage
 
     # Install syslinux bootloader
-    sudo cp ../sysfiles/syslinux.cfg  /mnt/shorkmini/boot/syslinux/syslinux.cfg
+    if ! $NO_MENU; then
+        echo -e "${GREEN}Installing menu-based Syslinux bootloader...${RESET}"
+        sudo cp ../sysfiles/syslinux.cfg.menu  /mnt/shorkmini/boot/syslinux/syslinux.cfg
+        
+        SYSLINUX_DIRS="
+        /usr/lib/syslinux
+        /usr/lib/syslinux/modules/bios
+        /usr/share/syslinux
+        "
+
+        copy_syslinux_file()
+        {
+            for d in $SYSLINUX_DIRS; do
+                if [ -f "$d/$1" ]; then
+                    sudo cp "$d/$1" /mnt/shorkmini/boot/syslinux/
+                    return 0
+                fi
+            done
+            echo "ERROR: $1 not found"
+            exit 1
+        }
+
+        copy_syslinux_file menu.c32
+        copy_syslinux_file libutil.c32
+        copy_syslinux_file libcom32.c32
+        copy_syslinux_file libmenu.c32
+    else
+        echo -e "${GREEN}Installing boot-only Syslinux bootloader...${RESET}"
+        sudo cp ../sysfiles/syslinux.cfg.boot  /mnt/shorkmini/boot/syslinux/syslinux.cfg
+    fi
+
     sudo extlinux --install /mnt/shorkmini/boot/syslinux
 
     # Install MBR boot code
@@ -603,8 +645,8 @@ convert_disk_img()
     qemu-img convert -f raw -O vmdk shorkmini.img shorkmini.vmdk
 }
 
-# Fixes disk drive image permissions after root build (only proceeds if ran as root)
-fix_img_perms()
+# Fixes directory permissions after root build
+fix_perms()
 {
     if [ "$(id -u)" -eq 0 ]; then
         echo -e "${GREEN}Fixing disk drive image permissions so they are usable after being build at root...${RESET}"
@@ -673,5 +715,5 @@ fi
 build_file_system
 build_disk_img
 convert_disk_img
-fix_img_perms
+fix_perms
 clean_stale_mounts
