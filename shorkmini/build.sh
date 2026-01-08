@@ -890,9 +890,10 @@ build_disk_img()
         copy_sysfile ../sysfiles/syslinux.cfg.menu  /mnt/shorkmini/boot/syslinux/syslinux.cfg
         
         SYSLINUX_DIRS="
-        /usr/lib/syslinux
         /usr/lib/syslinux/modules/bios
+        /usr/lib/syslinux/bios
         /usr/share/syslinux
+        /usr/lib/syslinux
         "
 
         copy_syslinux_file()
