@@ -52,9 +52,17 @@ DONT_DEL_ROOT=false
 IS_ARCH=false
 IS_DEBIAN=false
 NO_MENU=false
+TARGET_MIB=""
 
-for arg in "$@"; do
-    case "$arg" in
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -mib=*|--target-mib=*)
+            TARGET_MIB="${1#*=}"
+            ;;
+        -mib|--target-mib)
+            shift
+            TARGET_MIB="$1"
+            ;;
         -m|--minimal)
             MINIMAL=true
             DONT_DEL_ROOT=true
@@ -100,7 +108,16 @@ for arg in "$@"; do
             NO_MENU=true
             ;;
     esac
+    shift
 done
+
+
+
+# Input validation
+if [ -n "$TARGET_MIB" ] && ! [[ "$TARGET_MIB" =~ ^[0-9]+$ ]]; then
+    echo -e "${RED}ERROR: the \"target MiB\" parameter value must be an integer (whole number)${RESET}"
+    exit 1
+fi
 
 
 
@@ -643,6 +660,7 @@ get_dropbear()
     if [ -d dropbear ]; then
         echo -e "${YELLOW}Dropbear source already present, resetting...${RESET}"
         cd dropbear
+        git config --global --add safe.directory "$CURR_DIR/build/dropbear"
         git reset --hard
         git checkout "DROPBEAR_${DROPBEAR_VER}" || true
     else
@@ -677,6 +695,7 @@ get_git()
     if [ -d git ]; then
         echo -e "${YELLOW}Git source already present, resetting...${RESET}"
         cd git
+        git config --global --add safe.directory "$CURR_DIR/build/git"
         git reset --hard
         git checkout "v${GIT_VER}" || true
     else
@@ -861,14 +880,23 @@ build_disk_img()
     krn_bytes=$(stat -c %s bzImage)
     fs_bytes=$(du -sb root/ | cut -f1)
 
-    OVERHEAD=$(( (krn_bytes + fs_bytes + 1024*1024 - 1) / (1024*1024) ))
+    OVERHEAD=$(((krn_bytes + fs_bytes + 1024 * 1024 - 1) / (1024 * 1024)))
+    total=$((krn_bytes + fs_bytes + OVERHEAD * 1024 * 1024))
+    mib=$(((total + 1024 * 1024 - 1) / (1024 * 1024)))
+    mib=$((((mib + 3) / 4) * 4 ))
 
-    total=$((krn_bytes + fs_bytes + OVERHEAD*1024*1024))
-    mb=$(( (total + 1024*1024 - 1) / (1024*1024) ))
-    mb=$(( ((mb + 3) / 4) * 4 ))
+    # Use target MiB value is provided
+    if [ -n "$TARGET_MIB" ]; then
+        if [ "$TARGET_MIB" -lt "$mib" ]; then
+            echo -e "${YELLOW}WARNING: the provided target MiB value (${TARGET_MIB}MiB) is smaller than required size (${mib}MiB) - using calculated size instead${RESET}"
+        else
+            echo -e "${GREEN}Using user-specified disk size (${TARGET_MIB}MiB)${RESET}"
+            mib="$TARGET_MIB"
+        fi
+    fi
 
     # Create the image
-    dd if=/dev/zero of=../images/shorkmini.img bs=1M count="$mb" status=progress
+    dd if=/dev/zero of=../images/shorkmini.img bs=1M count="$mib" status=progress
 
     # Shrinks the image so it ends on a whole CHS cylinder boundary
     SECTORS_PER_CYL=$((16*63))
@@ -951,7 +979,6 @@ convert_disk_img()
 
 
 
-# Intro message
 echo -e "${BLUE}==============================="
 echo -e "=== SHORK Mini build script ==="
 echo -e "===============================${RESET}"

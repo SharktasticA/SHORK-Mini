@@ -2,7 +2,7 @@
 
 A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, specifically with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK Mini does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
-A complete SHORK Mini build aims to take up no more than ~50MB inside the disk. For that size, a complete SHORK Mini build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, and a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~5MB whilst still including the typical commands as before, the vi editor, and basic networking support.
+A complete SHORK Mini build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK Mini build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, and a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~5MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
 
 <img alt="A screenshot of SHORK Mini running on an 86Box virtual machine after a cold boot" src="screenshots/86box_cold_boot.webp" width="512px">
 
@@ -69,37 +69,41 @@ It is recommended to move or copy the images out of this directory before extens
 
 * `build.sh`: Contains the complete download and compilation process that reproduces a `shorkmini.img` disk drive image. The following parameters are supported:
 
-    * **Always (re)build** (`-ab`, `--always-build`): can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
+    * **Always (re)build** (`--always-build`): can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
         * This does nothing if the "skip kernel" parameter is also used.
-    * **Is Arch** (`-ia`, `--is-arch`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on an Arch-based system.
+    * **Is Arch** (`--is-arch`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on an Arch-based system.
         * This does nothing if the "minimal" parameter is also used.
-    * **Is Debian** (`-id`, `--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
+    * **Is Debian** (`--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
         * This does nothing if the "minimal" parameter is also used.
-    * **Minimal** (`-m`, `--minimal`): can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive images after only making changes to `sysfiles`.* **
-    * **No boot menu** (`-nm`, `--no-menu`): can be used to remove SHORK Mini's boot menu.
-        * This will save ~524KB to the boot file system. SHORK Mini will no longer provide the option to boot in a debug/verbose mode.
-    * **Skip kernel** (`-sk`, `--skip-kernel`): can be used to skip downloading and compiling the kernel.* **
+    * **Minimal** (`--minimal`): can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive images after only making changes to `sysfiles`.* **
+    * **No boot menu** (`--no-menu`): can be used to remove SHORK Mini's boot menu.
+        * This will save ~512KiB to the boot file system. SHORK Mini will no longer provide the option to boot in a debug/verbose mode.
+    * **Skip kernel** (`--skip-kernel`): can be used to skip downloading and compiling the kernel.* **
         * This does nothing if the "minimal" parameter is also used.
-    * **Skip BusyBox** (`-sb`, `--skip-busybox`): can be used to skip downloading and compiling BusyBox.* **
+    * **Skip BusyBox** (`--skip-busybox`): can be used to skip downloading and compiling BusyBox.* **
         * This does nothing if the "minimal" parameter is also used.
-    * **Skip Dropbear** (`-sdb`, `--skip-dropbear`): can be used to skip downloading and compiling Dropbear.
-        * This will save ~364KB and 3 files on the root file system. SHORK Mini will lose SCP and SSH capabilities.
+    * **Skip Dropbear** (`--skip-dropbear`): can be used to skip downloading and compiling Dropbear.
+        * This will save ~355KiB and 3 files on the root file system. SHORK Mini will lose SCP and SSH capabilities.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * **Skip Git** (`-sg`, `--skip-git`): can be used to skip downloading and compiling Git and its prerequisites (zlib, OpenSSL and curl).
-        * This will save ~20MB and 192 files on the root file system. SHORK Mini will lose its git client.
+    * **Skip Git** (`--skip-git`): can be used to skip downloading and compiling Git and its prerequisites (zlib, OpenSSL and curl).
+        * This will save ~19MiB and 192 files on the root file system. SHORK Mini will lose its git client.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * **Skip keymaps**  (`-skm`, `--skip-keymaps`): can be used to skip installing keymaps.
-        * This will save ~65KB and 26 files on the root file system. SHORK Mini will stop supporting keyboard layouts other than ANSI U.S. English. `shorkmap` will not be included.
+    * **Skip keymaps** (`--skip-keymaps`): can be used to skip installing keymaps.
+        * This will save ~63.5KiB and 26 files on the root file system. SHORK Mini will stop supporting keyboard layouts other than ANSI U.S. English. `shorkmap` will not be included.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * **Skip nano** (`-snn`, `--skip-nano`): can be used to skip downloading and compiling nano.
-        * This will save ~1MB and 60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
+    * **Skip nano** (`--skip-nano`): can be used to skip downloading and compiling nano.
+        * This will save ~1MiB and 60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * **Skip pci.ids** (`-spi`, `--skip-pciids`): can be used to skip building and including a `pci.ids` file.
-        * This will save ~75-100KB and one file on the root file system. `shorkfetch` will lose its "GPU" field.
+    * **Skip pci.ids** (`--skip-pciids`): can be used to skip building and including a `pci.ids` file.
+        * This will save ~75-100KiB and one file on the root file system. `shorkfetch` will lose its "GPU" field.
         * GPU identification on some 486SX configurations can take a while, so excluding this may be desirable to speed up `shorkfetch` significantly in such scenarios.
-    * **Skip tnftp** (`-stp`, `--skip-tnftp`): can be used to skip downloading and compiling tnftp.
-        * This will save ~311KB and 3 files on the root file system. SHORK Mini will lose FTP capabilities.
+    * **Skip tnftp** (`--skip-tnftp`): can be used to skip downloading and compiling tnftp.
+        * This will save ~304KiB and 3 files on the root file system. SHORK Mini will lose FTP capabilities.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
+    * **Target MiB** (`--target-mib`): can be used to specify a target total size in mebibytes for SHORK Mini's disk drive images.
+        * Example usage: `--target-mib=100` to specify a 100MiB target size.
+        * The build script will always calculate the minimum required disk drive image size, and if the target is below that, it will default to using this calculated size.
+        * Whilst the raw image (`.img`) will be created to this size, the VMware image (`.vmdk`) dynamically expands, so it may initially take up less space.
 
 * `clean.sh`: Deletes anything that was downloaded, created or generated by `build.sh`.
 
