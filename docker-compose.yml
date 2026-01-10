@@ -7,6 +7,7 @@ services:
     environment:
       - HOST_GID=1000
       - HOST_UID=1000
+      - IN_DOCKER=1
     privileged: true
     volumes:
       - ./shork486:/var/shork486

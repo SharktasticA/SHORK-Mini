@@ -152,19 +152,10 @@ CURL_VER="8.18.0"
 # The highest working directory
 CURR_DIR=$(pwd)
 
-# Find MBR binary (can be different depending on distro)
+# MBR binary
 MBR_BIN=""
 
-for candidate in \
-    /usr/lib/syslinux/mbr/mbr.bin \
-    /usr/lib/syslinux/bios/mbr.bin \
-    /usr/share/syslinux/mbr.bin
-do
-    if [ -f "$candidate" ]; then
-        MBR_BIN="$candidate"
-        break
-    fi
-done
+
 
 # Common compiler/compiler-related locations
 PREFIX="${CURR_DIR}/build/i486-linux-musl-cross"
@@ -239,31 +230,63 @@ install_debian_prerequisites()
     echo -e "${GREEN}Installing prerequisite packages for a Debian-based system...${RESET}"
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install -y autoconf bc bison bzip2 ca-certificates cpio dosfstools e2fsprogs extlinux fdisk flex git kpartx libncurses-dev:i386 libtool make pciutils python3 qemu-utils syslinux texinfo udev wget xz-utils || true
+
+    PACKAGES="bc bison bzip2 e2fsprogs extlinux fdisk flex git kpartx make qemu-utils syslinux wget xz-utils"
+    if ! $SKIP_NANO; then
+        PACKAGES="$PACKAGES texinfo"
+    fi
+    if ! $SKIP_GIT; then
+        PACKAGES="$PACKAGES autoconf"
+    fi
+    if ! $SKIP_PCIIDS; then
+        PACKAGES="$PACKAGES pciutils python3"
+    fi
+
+    sudo apt-get install -y $PACKAGES || true
+
     export PATH="$PATH:/usr/sbin:/sbin"
 }
 
 # Installs needed packages to host computer
 get_prerequisites()
 {
-    if $IS_ARCH; then
-        install_arch_prerequisites
-    elif $IS_DEBIAN; then
-        install_debian_prerequisites
+    if [ -z "$IN_DOCKER" ]; then
+        if $IS_ARCH; then
+            install_arch_prerequisites
+        elif $IS_DEBIAN; then
+            install_debian_prerequisites
+        else
+            echo -e "${YELLOW}Select host Linux distribution:${RESET}"
+            select host in "Arch based" "Debian based"; do
+                case $host in
+                    "Arch based")
+                        install_arch_prerequisites
+                        break ;;
+                    "Debian based")
+                        install_debian_prerequisites
+                        break ;;
+                    *)
+                esac
+            done
+        fi
     else
-        echo -e "${YELLOW}Select host Linux distribution:${RESET}"
-        select host in "Arch based" "Debian based"; do
-            case $host in
-                "Arch based")
-                    install_arch_prerequisites
-                    break ;;
-                "Debian based")
-                    install_debian_prerequisites
-                    break ;;
-                *)
-            esac
-        done
+        # Skip if inside Docker as Dockerfile already installs prerequisites
+        echo -e "${LIGHT_RED}Running inside Docker, skipping installing prerequisite packages...${RESET}"
     fi
+
+    # Set MBR binary (can be different depending on distro)
+    for candidate in \
+        /usr/lib/SYSLINUX/mbr.bin \
+        /usr/lib/syslinux/mbr/mbr.bin \
+        /usr/lib/syslinux/bios/mbr.bin \
+        /usr/share/syslinux/mbr.bin \
+        /usr/share/syslinux/mbr.bin
+    do
+        if [ -f "$candidate" ]; then
+            MBR_BIN="$candidate"
+            break
+        fi
+    done
 }
 
 
@@ -856,7 +879,6 @@ build_file_system()
 # Build a disk drive image containing our system
 build_disk_img()
 {
-    echo -e "${GREEN}Creating a disk drive image containing this system...${RESET}"
     cd $CURR_DIR/build/
 
     # Cleans up all temporary block-device states when script exists, fails or interrupted
@@ -874,6 +896,8 @@ build_disk_img()
         fi
     }
     trap cleanup EXIT INT TERM
+    
+    echo -e "${GREEN}Creating a disk drive image containing this system...${RESET}"
 
     # Calculate size for the image
     # OVERHEAD is provided to take into account metadata, partition alignment, bootloader structures, etc.
