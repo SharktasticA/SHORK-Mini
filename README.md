@@ -1,10 +1,10 @@
-# SHORK Mini
+# SHORK 486
 
-A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, specifically with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK Mini does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
+A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, specifically with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
-A complete SHORK Mini build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK Mini build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, and a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~5MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
+A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, and a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~5MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
 
-<img alt="A screenshot of SHORK Mini running on an 86Box virtual machine after a cold boot" src="screenshots/86box_cold_boot.webp" width="512px">
+<img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="screenshots/86box_cold_boot.webp" width="512px">
 
 ## Usage
 
@@ -12,17 +12,17 @@ Please read "Notice & disclaimers" at the end of this readme before proceeding.
 
 ### Native compilation
 
-If you are using an Arch or Debian-based Linux, run `build.sh` whilst in the `shorkmini` directory and answer any prompts given throughout the process. Script parameters are listed in the "Scripts & parameters" section of this readme that can be used to reduce the need for the aforementioned prompts.
+If you are using an Arch or Debian-based Linux, run `build.sh` whilst in the `shork486` directory and answer any prompts given throughout the process. Script parameters are listed in the "Scripts & parameters" section of this readme that can be used to reduce the need for the aforementioned prompts.
 
 ### Dockerised compilation
 
-If you are using Windows, macOS, a Linux distribution that has not been tested with native compilation, or want some kind of "sandbox" on this process, you can try Dockerised compilation instead. It will create a Docker container with a minimal Debian 13 installation that is active for just the lifetime of the build process. Run `docker-compose up` whilst in this repository's directory (not `shorkmini`).
+If you are using Windows, macOS, a Linux distribution that has not been tested with native compilation, or want some kind of "sandbox" on this process, you can try Dockerised compilation instead. It will create a Docker container with a minimal Debian 13 installation that is active for just the lifetime of the build process. Run `docker-compose up` whilst in this repository's directory (not `shork486`).
 
-Script parameters as seen in the "Scripts & parameters" section can also be used for Dockerised compilation, placed in a list under `services` -> `shorkmini-build` -> `command` inside `docker-compose.yml`. If a run has already been made, you may need to run `docker-compose up --build` instead before any changes are applied.
+Script parameters as seen in the "Scripts & parameters" section can also be used for Dockerised compilation, placed in a list under `services` -> `shork486-build` -> `command` inside `docker-compose.yml`. If a run has already been made, you may need to run `docker-compose up --build` instead before any changes are applied.
 
 ### After compilation
 
-Once compiled, two disk drive images - `shorkmini.img` and `shorkmini.vmdk` - should be present in the `images` folder. The former can be used as-is with emulation software like 86Box or written to a real drive using (e.g.) `dd`, and the latter can be used as-is with VMware Workstation or Player. Please refer to the "Running" section for suggested virtual machine configurations to get started with SHORK Mini.
+Once compiled, two disk drive images - `shork486.img` and `shork486.vmdk` - should be present in the `images` folder. The former can be used as-is with emulation software like 86Box or written to a real drive using (e.g.) `dd`, and the latter can be used as-is with VMware Workstation or Player. Please refer to the "Running" section for suggested virtual machine configurations to get started with SHORK 486.
 
 It is recommended to move or copy the images out of this directory before extensive or serious use because they will be replaced if the build process is rerun.
 
@@ -67,7 +67,7 @@ It is recommended to move or copy the images out of this directory before extens
 
 ## Scripts & parameters
 
-* `build.sh`: Contains the complete download and compilation process that reproduces a `shorkmini.img` disk drive image. The following parameters are supported:
+* `build.sh`: Contains the complete download and compilation process that reproduces a `shork486.img` disk drive image. The following parameters are supported:
 
     * **Always (re)build** (`--always-build`): can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
         * This does nothing if the "skip kernel" parameter is also used.
@@ -76,20 +76,20 @@ It is recommended to move or copy the images out of this directory before extens
     * **Is Debian** (`--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
         * This does nothing if the "minimal" parameter is also used.
     * **Minimal** (`--minimal`): can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive images after only making changes to `sysfiles`.* **
-    * **No boot menu** (`--no-menu`): can be used to remove SHORK Mini's boot menu.
-        * This will save ~512KiB to the boot file system. SHORK Mini will no longer provide the option to boot in a debug/verbose mode.
+    * **No boot menu** (`--no-menu`): can be used to remove SHORK 486's boot menu.
+        * This will save ~512KiB to the boot file system. SHORK 486 will no longer provide the option to boot in a debug/verbose mode.
     * **Skip kernel** (`--skip-kernel`): can be used to skip downloading and compiling the kernel.* **
         * This does nothing if the "minimal" parameter is also used.
     * **Skip BusyBox** (`--skip-busybox`): can be used to skip downloading and compiling BusyBox.* **
         * This does nothing if the "minimal" parameter is also used.
     * **Skip Dropbear** (`--skip-dropbear`): can be used to skip downloading and compiling Dropbear.
-        * This will save ~355KiB and 3 files on the root file system. SHORK Mini will lose SCP and SSH capabilities.
+        * This will save ~355KiB and 3 files on the root file system. SHORK 486 will lose SCP and SSH capabilities.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
     * **Skip Git** (`--skip-git`): can be used to skip downloading and compiling Git and its prerequisites (zlib, OpenSSL and curl).
-        * This will save ~19MiB and 192 files on the root file system. SHORK Mini will lose its git client.
+        * This will save ~19MiB and 192 files on the root file system. SHORK 486 will lose its git client.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
     * **Skip keymaps** (`--skip-keymaps`): can be used to skip installing keymaps.
-        * This will save ~63.5KiB and 26 files on the root file system. SHORK Mini will stop supporting keyboard layouts other than ANSI U.S. English. `shorkmap` will not be included.
+        * This will save ~63.5KiB and 26 files on the root file system. SHORK 486 will stop supporting keyboard layouts other than ANSI U.S. English. `shorkmap` will not be included.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
     * **Skip nano** (`--skip-nano`): can be used to skip downloading and compiling nano.
         * This will save ~1MiB and 60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
@@ -98,9 +98,9 @@ It is recommended to move or copy the images out of this directory before extens
         * This will save ~75-100KiB and one file on the root file system. `shorkfetch` will lose its "GPU" field.
         * GPU identification on some 486SX configurations can take a while, so excluding this may be desirable to speed up `shorkfetch` significantly in such scenarios.
     * **Skip tnftp** (`--skip-tnftp`): can be used to skip downloading and compiling tnftp.
-        * This will save ~304KiB and 3 files on the root file system. SHORK Mini will lose FTP capabilities.
+        * This will save ~304KiB and 3 files on the root file system. SHORK 486 will lose FTP capabilities.
         * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
-    * **Target MiB** (`--target-mib`): can be used to specify a target total size in mebibytes for SHORK Mini's disk drive images.
+    * **Target MiB** (`--target-mib`): can be used to specify a target total size in mebibytes for SHORK 486's disk drive images.
         * Example usage: `--target-mib=100` to specify a 100MiB target size.
         * The build script will always calculate the minimum required disk drive image size, and if the target is below that, it will default to using this calculated size.
         * Whilst the raw image (`.img`) will be created to this size, the VMware image (`.vmdk`) dynamically expands, so it may initially take up less space.
@@ -132,7 +132,7 @@ TODO.
 
 ### 86Box
 
-86Box should be able to create many vintage machine configurations to test with. Below is a suggested configuration for the lowest-end machine SHORK Mini should be able to run on:
+86Box should be able to create many vintage machine configurations to test with. Below is a suggested configuration for the lowest-end machine SHORK 486 should be able to run on:
 
 * Machine
     * **Machine type:** [1994] i486 (Socket 3 PCI)
@@ -162,7 +162,7 @@ You can configure sound, ports, floppy and CD-ROM drives however you wish. Just 
 
 ### VMware Workstation
 
-SHORK Mini should work with VMware Workstation without issue. Below is a suggested virtual machine configuration:
+SHORK 486 should work with VMware Workstation without issue. Below is a suggested virtual machine configuration:
 
 * **Hardware compatibility:** any option
 * **Install operating system from:** later

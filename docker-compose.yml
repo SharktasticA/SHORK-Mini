@@ -1,12 +1,13 @@
 services:
-  shorkmini-build:
+  shork486-build:
     build: .
     command:
       - --always-build
       - --is-debian
+      - --minimal
     environment:
       - HOST_GID=1000
       - HOST_UID=1000
     privileged: true
     volumes:
-      - ./shorkmini:/var/shorkmini
+      - ./shork486:/var/shork486

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ######################################################
-## A small utility that informs about SHORK Mini's  ##
+## A small utility that informs about SHORK 486's   ##
 ## capabilities                                     ##
 ######################################################
 ## Kali (sharktastica.co.uk)                        ##
@@ -17,7 +17,7 @@ loadfont, loadkmap, ls, man, mkdir, mknod, mount, mv, nohup, ping, pkill,
 printf, pwd, readlink, rm, rmdir, route, sed, showkey, sleep, sync, tee, test,
 top, touch, tr, udhcpc, umount, uname, vi, wget, which
 
-SHORK Mini utilities
+SHORK 486 utilities
 --------------------
 shorkcol, shorkfetch, shorkhelp, shorkmap
 

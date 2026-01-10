@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ######################################################
-## SHORK Mini build script                          ##
+## SHORK 486 build script                           ##
 ######################################################
 ## Kali (sharktastica.co.uk)                        ##
 ######################################################
@@ -186,7 +186,7 @@ STRIP="${PREFIX}/bin/i486-linux-musl-strip"
 delete_root_dir()
 {
     if [ -n "$CURR_DIR" ] && [ -d "${DESTDIR}" ]; then
-        echo -e "${GREEN}Deleting existing SHORK Mini root directory to ensure fresh changes can be made...${RESET}"
+        echo -e "${GREEN}Deleting existing SHORK 486 root directory to ensure fresh changes can be made...${RESET}"
         sudo rm -rf "${DESTDIR}"
     fi
 }
@@ -205,7 +205,7 @@ fix_perms()
             sudo chmod 755 .
         fi
 
-        for f in shorkmini.img shorkmini.vmdk; do
+        for f in shork486.img shork486.vmdk; do
             [ -f "$f" ] || continue
             sudo chown "$HOST_UID:$HOST_GID" "$f"
             sudo chmod 644 "$f"
@@ -217,8 +217,8 @@ fix_perms()
 clean_stale_mounts()
 {
     echo -e "${GREEN}Cleaning up any stale mounts and block-device mappings left by image builds ...${RESET}"
-    sudo umount -lf /mnt/shorkmini 2>/dev/null
-    sudo losetup -a | grep shorkmini | cut -d: -f1 | xargs -r sudo losetup -d
+    sudo umount -lf /mnt/shork486 2>/dev/null
+    sudo losetup -a | grep shork486 | cut -d: -f1 | xargs -r sudo losetup -d
     sudo dmsetup remove_all 2>/dev/null
 }
 
@@ -896,19 +896,19 @@ build_disk_img()
     fi
 
     # Create the image
-    dd if=/dev/zero of=../images/shorkmini.img bs=1M count="$mib" status=progress
+    dd if=/dev/zero of=../images/shork486.img bs=1M count="$mib" status=progress
 
     # Shrinks the image so it ends on a whole CHS cylinder boundary
     SECTORS_PER_CYL=$((16*63))
-    bytes=$(stat -c %s ../images/shorkmini.img)
+    bytes=$(stat -c %s ../images/shork486.img)
     sectors=$((bytes / 512))
     aligned_sectors=$(( (sectors / SECTORS_PER_CYL) * SECTORS_PER_CYL ))
     aligned_bytes=$((aligned_sectors * 512))
-    truncate -s "$aligned_bytes" ../images/shorkmini.img
+    truncate -s "$aligned_bytes" ../images/shork486.img
 
     # Partition the image
     PART_SIZE=$((aligned_sectors - 63))
-    sed "s/@PART_SIZE@/${PART_SIZE}/g" "$CURR_DIR/sysfiles/partitions" | sudo sfdisk ../images/shorkmini.img
+    sed "s/@PART_SIZE@/${PART_SIZE}/g" "$CURR_DIR/sysfiles/partitions" | sudo sfdisk ../images/shork486.img
 
     # Ensure loop devices exist (Docker does not always create them)
     for i in $(seq 0 255); do
@@ -917,24 +917,24 @@ build_disk_img()
     [ -e /dev/loop-control ] || sudo mknod /dev/loop-control c 10 237
 
     # Expose partition
-    loop=$(sudo losetup -f --show ../images/shorkmini.img)
+    loop=$(sudo losetup -f --show ../images/shork486.img)
     sudo kpartx -av "$loop"
     part="/dev/mapper/$(basename "$loop")p1"
 
     # Create and populate root partition
     sudo mkfs.ext2 "$part"
-    sudo mkdir -p /mnt/shorkmini
-    sudo mount "$part" /mnt/shorkmini
-    sudo cp -a root//. /mnt/shorkmini
-    sudo mkdir -p /mnt/shorkmini/{dev,proc,sys,boot/syslinux}
+    sudo mkdir -p /mnt/shork486
+    sudo mount "$part" /mnt/shork486
+    sudo cp -a root//. /mnt/shork486
+    sudo mkdir -p /mnt/shork486/{dev,proc,sys,boot/syslinux}
 
     # Install the kernel
-    sudo cp bzImage /mnt/shorkmini/boot/bzImage
+    sudo cp bzImage /mnt/shork486/boot/bzImage
 
     # Install syslinux bootloader
     if ! $NO_MENU; then
         echo -e "${GREEN}Installing menu-based Syslinux bootloader...${RESET}"
-        copy_sysfile ../sysfiles/syslinux.cfg.menu  /mnt/shorkmini/boot/syslinux/syslinux.cfg
+        copy_sysfile ../sysfiles/syslinux.cfg.menu  /mnt/shork486/boot/syslinux/syslinux.cfg
         
         SYSLINUX_DIRS="
         /usr/lib/syslinux/modules/bios
@@ -947,7 +947,7 @@ build_disk_img()
         {
             for d in $SYSLINUX_DIRS; do
                 if [ -f "$d/$1" ]; then
-                    sudo cp "$d/$1" /mnt/shorkmini/boot/syslinux/
+                    sudo cp "$d/$1" /mnt/shork486/boot/syslinux/
                     return 0
                 fi
             done
@@ -961,27 +961,27 @@ build_disk_img()
         copy_syslinux_file libmenu.c32
     else
         echo -e "${GREEN}Installing boot-only Syslinux bootloader...${RESET}"
-        copy_sysfile ../sysfiles/syslinux.cfg.boot  /mnt/shorkmini/boot/syslinux/syslinux.cfg
+        copy_sysfile ../sysfiles/syslinux.cfg.boot  /mnt/shork486/boot/syslinux/syslinux.cfg
     fi
 
-    sudo extlinux --install /mnt/shorkmini/boot/syslinux
+    sudo extlinux --install /mnt/shork486/boot/syslinux
 
     # Install MBR boot code
-    sudo dd if="$MBR_BIN" of=../images/shorkmini.img bs=440 count=1 conv=notrunc
+    sudo dd if="$MBR_BIN" of=../images/shork486.img bs=440 count=1 conv=notrunc
 }
 
 # Converts the disk drive image to VMware format for testing
 convert_disk_img()
 {
     cd $CURR_DIR/images/
-    qemu-img convert -f raw -O vmdk shorkmini.img shorkmini.vmdk
+    qemu-img convert -f raw -O vmdk shork486.img shork486.vmdk
 }
 
 
 
-echo -e "${BLUE}==============================="
-echo -e "=== SHORK Mini build script ==="
-echo -e "===============================${RESET}"
+echo -e "${BLUE}=============================="
+echo -e "=== SHORK 486 build script ==="
+echo -e "==============================${RESET}"
 
 mkdir -p images
 
