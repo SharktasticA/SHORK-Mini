@@ -2,7 +2,7 @@
 
 A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, specifically with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
-A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, and a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~5MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
+A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~10MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
 
 <img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="screenshots/86box_cold_boot.webp" width="512px">
 
@@ -34,7 +34,7 @@ It is recommended to move or copy the images out of this directory before extens
 
 * **Networking:** ftpget, ftpput, hostname, ifconfig, ping, route, udhcpc, wget
 
-* **System & processes:** chroot, crontab, dmesg, free, halt, kill, mknod, mount, nohup, pkill, sleep, stat, sync, top, umount
+* **System & processes:** chroot, crontab, dmesg, free, halt, kill, mknod, mount, nohup, pkill, sleep, stat, stty, sync, top, umount
 
 * **Other:** beep, loadfont, loadkmap, showkey
 
@@ -51,8 +51,9 @@ It is recommended to move or copy the images out of this directory before extens
 * **shorkcol** - Persistently changes the terminal's foreground (text) colour. Takes one argument (a colour name); running it without an argument shows a list of possible colours.
 * **shorkfetch** - Displays basic system and environment information. Similar to fastfetch, neofetch, etc. Takes no arguments.
 * **shorkhelp** - Shows lists of supported commands and bundled utilities. Takes the `--shorkutils` parameter to show this SHORK 486 utilities explanation.
-* **shorkmap** - Persistently changes the system's keymap. Takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
+* **shorkmap** - Persistently changes the system's keyboard layout (keymap). Takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
 * **shorkoff** - Brings the system to a halt and syncs the write cache, allowing the computer to be safely turned off. Similar to `poweroff` or `shutdown -h`. Takes no arguments.
+* **shorkres** - Persistently changes the system's display resolution (provided the hardware is compatible). Takes one argument (a resolution name); running it without an argument shows a list of possible resolution names.
 
 ## Overall process
 
@@ -62,7 +63,7 @@ It is recommended to move or copy the images out of this directory before extens
 4. Linux kernel source is downloaded and compiled. `configs/linux.config` is copied during this process. The configuration is tailored to provide the minimum for 486SX, PATA/SATA and networking. The output is `build/bzImage`.
 4. BusyBox source is downloaded and compiled. `configs/busybox.config` is copied during this process. BusyBox provides common Unix-style utilities in one executable.
 5. BusyBox's compilation is used to assemble a root file system in `build/root`. All files in `sysfiles` are copied into their appropriate locations within it.
-6. Any other programs I desire are downloaded and compiled. Currently, this includes: nano, tnftp and Dropbear.
+6. Any other programs I desire are downloaded and compiled.
 7. A raw hard drive image (`.img`) is created in the `images` folder, containing the kernel image and the aforementioned file system.
 8. `qemu-img` is used to convert the raw image into a new VMware format image (`.vmdk`).
 

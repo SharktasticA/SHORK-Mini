@@ -48,23 +48,35 @@ fi
 # Set up PC speaker
 modprobe pcspkr 2>/dev/null || true
 
+# Show welcome banner
 clear
-if [ -f welcome ]; then
+
+COLS=$(stty size 2>/dev/null | awk '{print $2}')
+BANNER=""
+
+if [ "$COLS" -ge 128 ] && [ -f banners/welcome-128 ]; then
+    BANNER="banners/welcome-128"
+elif [ "$COLS" -ge 100 ] && [ -f banners/welcome-100 ]; then
+    BANNER="banners/welcome-100"
+elif [ "$COLS" -ge 80 ] && [ -f banners/welcome-80 ]; then
+    BANNER="banners/welcome-80"
+fi
+
+if [ -n "$BANNER" ]; then
     printf "\x1b[37;44m"
-    cat welcome
+    cat "$BANNER"
     printf "\x1b[0m"
 fi
 
 printf "\n\n"
 
-clear
-if [ -f welcome ]; then
-    printf "\x1b[37;44m"
-    cat welcome
-    printf "\x1b[0m"
+# Show welcome tip (if first boot)
+# First‑boot hint
+if [ ! -f /etc/.past_first_boot ]; then
+    printf "Welcome! If this is your first time using @NAME@, please check out \033[32mshorkhelp\033[0m!"
+    echo "1" > /etc/.past_first_boot
+    printf "\n\n"
 fi
-
-printf "\n\n"
 
 # Periodic sync write cache to help ensure files aren't lost after hard reboot
 # User should IDEALLY use shorkoff before hard turning off the host, though!

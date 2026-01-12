@@ -447,6 +447,42 @@ get_curl()
 
 
 ######################################################
+## BusyBox building                                 ##
+######################################################
+
+# Download and compile BusyBox
+get_busybox()
+{
+    cd "$CURR_DIR/build"
+
+    echo -e "${GREEN}Downloading BusyBox...${RESET}"
+    [ -f $BUSYBOX_VER.tar.gz ] || wget https://github.com/mirror/busybox/archive/refs/tags/$BUSYBOX_VER.tar.gz
+    [ -d busybox-$BUSYBOX_VER ] || tar xzvf $BUSYBOX_VER.tar.gz
+    cd busybox-$BUSYBOX_VER/
+    make ARCH=x86 allnoconfig
+    sed -i 's/main() {}/int main() {}/' scripts/kconfig/lxdialog/check-lxdialog.sh
+    cp $CURR_DIR/configs/busybox.config .config
+
+    # Patch BusyBox to suppress banner and help message
+    sed -i 's/^#if !ENABLE_FEATURE_SH_EXTRA_QUIET/#if 0 \/* disabled ash banner *\//' shell/ash.c
+
+    echo -e "${GREEN}Compiling BusyBox...${RESET}"
+    sed -i "s|^CONFIG_CROSS_COMPILER_PREFIX=.*|CONFIG_CROSS_COMPILER_PREFIX=\"${PREFIX}/bin/i486-linux-musl-\"|" .config
+    sed -i "s|^CONFIG_SYSROOT=.*|CONFIG_SYSROOT=\"${CURR_DIR}/build/i486-linux-musl-cross\"|" .config
+    sed -i "s|^CONFIG_EXTRA_CFLAGS=.*|CONFIG_EXTRA_CFLAGS=\"-I${PREFIX}/include\"|" .config
+    sed -i "s|^CONFIG_EXTRA_LDFLAGS=.*|CONFIG_EXTRA_LDFLAGS=\"-L${PREFIX}/lib\"|" .config
+    make ARCH=x86 -j$(nproc) && make ARCH=x86 install
+
+    echo -e "${GREEN}Move the result into a file system we will build...${RESET}"
+    if [ -d "${DESTDIR}" ]; then
+        sudo rm -r "${DESTDIR}"
+    fi
+    mv _install "${DESTDIR}"
+}
+
+
+
+######################################################
 ## Kernel building                                  ##
 ######################################################
 
@@ -456,20 +492,18 @@ download_kernel()
     echo -e "${GREEN}Downloading the Linux kernel...${RESET}"
     if [ ! -d "linux" ]; then
         git clone --depth=1 --branch v$KERNEL_VER https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
-        cd linux/
-        cp $CURR_DIR/configs/linux-$KERNEL_VER.config .config
+        cd "$CURR_DIR/build/linux"
+        cp $CURR_DIR/configs/linux.config .config
     fi
 }
 
 reset_kernel()
 {
-    cd "$CURR_DIR/build"
+    cd "$CURR_DIR/build/linux"
     echo -e "${GREEN}Resetting and cleaning Linux kernel...${RESET}"
-    cd linux/
     git reset --hard || true
-    git checkout "v${KERNEL_VER}" || true
     make clean
-    cp $CURR_DIR/configs/linux-$KERNEL_VER.config .config
+    cp $CURR_DIR/configs/linux.config .config
 }
 
 reclone_kernel()
@@ -523,40 +557,35 @@ get_kernel()
     compile_kernel
 }
 
-
-
-######################################################
-## BusyBox building                                 ##
-######################################################
-
-# Download and compile BusyBox
-get_busybox()
+# Download and compile v86d (needed for uvesafb)
+get_v86d()
 {
     cd "$CURR_DIR/build"
 
-    echo -e "${GREEN}Downloading BusyBox...${RESET}"
-    [ -f $BUSYBOX_VER.tar.gz ] || wget https://github.com/mirror/busybox/archive/refs/tags/$BUSYBOX_VER.tar.gz
-    [ -d busybox-$BUSYBOX_VER ] || tar xzvf $BUSYBOX_VER.tar.gz
-    cd busybox-$BUSYBOX_VER/
-    make ARCH=x86 allnoconfig
-    sed -i 's/main() {}/int main() {}/' scripts/kconfig/lxdialog/check-lxdialog.sh
-    cp $CURR_DIR/configs/busybox.config .config
-
-    # Patch BusyBox to suppress banner and help message
-    sed -i 's/^#if !ENABLE_FEATURE_SH_EXTRA_QUIET/#if 0 \/* disabled ash banner *\//' shell/ash.c
-
-    echo -e "${GREEN}Compiling BusyBox...${RESET}"
-    sed -i "s|^CONFIG_CROSS_COMPILER_PREFIX=.*|CONFIG_CROSS_COMPILER_PREFIX=\"${PREFIX}/bin/i486-linux-musl-\"|" .config
-    sed -i "s|^CONFIG_SYSROOT=.*|CONFIG_SYSROOT=\"${CURR_DIR}/build/i486-linux-musl-cross\"|" .config
-    sed -i "s|^CONFIG_EXTRA_CFLAGS=.*|CONFIG_EXTRA_CFLAGS=\"-I${PREFIX}/include\"|" .config
-    sed -i "s|^CONFIG_EXTRA_LDFLAGS=.*|CONFIG_EXTRA_LDFLAGS=\"-L${PREFIX}/lib\"|" .config
-    make ARCH=x86 -j$(nproc) && make ARCH=x86 install
-
-    echo -e "${GREEN}Move the result into a file system we will build...${RESET}"
-    if [ -d "${DESTDIR}" ]; then
-        sudo rm -r "${DESTDIR}"
+    # Skip if already built
+    if [ -f "${DESTDIR}/sbin/v86d" ]; then
+        echo -e "${LIGHT_RED}v86d already built, skipping...${RESET}"
+        return
     fi
-    mv _install "${DESTDIR}"
+
+    # Download source
+    if [ -d v86d ]; then
+        echo -e "${YELLOW}v86d source already present, resetting...${RESET}"
+        cd v86d
+        git reset --hard
+    else
+        echo -e "${GREEN}Downloading v86d...${RESET}"
+        git clone https://salsa.debian.org/debian/v86d.git
+        cd v86d
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling v86d...${RESET}"
+    sudo cp $CURR_DIR/configs/v86d.config.h config.h
+    make clean >/dev/null 2>&1
+    make CC="$CC -m32 -static -no-pie" v86d
+    install -Dm755 v86d "$DESTDIR/sbin/v86d"
+    strip "${DESTDIR}/sbin/v86d"
 }
 
 
@@ -787,7 +816,7 @@ build_file_system()
     cd "${DESTDIR}"
 
     echo -e "${GREEN}Make needed directories...${RESET}"
-    sudo mkdir -p {dev,proc,etc/init.d,sys,tmp,home,usr/share/udhcpc,usr/libexec}
+    sudo mkdir -p {dev,proc,etc/init.d,sys,tmp,home,usr/share/udhcpc,usr/libexec,banners}
 
     echo -e "${GREEN}Configure permissions...${RESET}"
     chmod +x $CURR_DIR/sysfiles/rc
@@ -799,10 +828,15 @@ build_file_system()
     chmod +x $CURR_DIR/utils/shorkcol
     chmod +x $CURR_DIR/utils/shorkhelp
     chmod +x $CURR_DIR/utils/shorkmap
+    chmod +x $CURR_DIR/utils/shorkres
 
     echo -e "${GREEN}Copy pre-defined files...${RESET}"
-    copy_sysfile $CURR_DIR/sysfiles/welcome $CURR_DIR/build/root/welcome
-    copy_sysfile $CURR_DIR/sysfiles/goodbye $CURR_DIR/build/root/goodbye
+    copy_sysfile $CURR_DIR/sysfiles/welcome-80 $CURR_DIR/build/root/banners/welcome-80
+    copy_sysfile $CURR_DIR/sysfiles/welcome-100 $CURR_DIR/build/root/banners/welcome-100
+    copy_sysfile $CURR_DIR/sysfiles/welcome-128 $CURR_DIR/build/root/banners/welcome-128
+    copy_sysfile $CURR_DIR/sysfiles/goodbye-80 $CURR_DIR/build/root/banners/goodbye-80
+    copy_sysfile $CURR_DIR/sysfiles/goodbye-100 $CURR_DIR/build/root/banners/goodbye-100
+    copy_sysfile $CURR_DIR/sysfiles/goodbye-128 $CURR_DIR/build/root/banners/goodbye-128
     copy_sysfile $CURR_DIR/sysfiles/hostname $CURR_DIR/build/root/etc/hostname
     copy_sysfile $CURR_DIR/sysfiles/issue $CURR_DIR/build/root/etc/issue
     copy_sysfile $CURR_DIR/sysfiles/os-release $CURR_DIR/build/root/etc/os-release
@@ -819,6 +853,7 @@ build_file_system()
     copy_sysfile $CURR_DIR/utils/shorkfetch $CURR_DIR/build/root/usr/bin/shorkfetch
     copy_sysfile $CURR_DIR/utils/shorkcol $CURR_DIR/build/root/usr/libexec/shorkcol
     copy_sysfile $CURR_DIR/utils/shorkhelp $CURR_DIR/build/root/usr/bin/shorkhelp
+    copy_sysfile $CURR_DIR/utils/shorkres $CURR_DIR/build/root/usr/bin/shorkres
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     sudo mkdir -p $CURR_DIR/build/root/usr/share/terminfo/src/
@@ -1034,11 +1069,11 @@ if ! $MINIMAL; then
     get_i486_musl_cc
     get_ncurses
 
-    if ! $SKIP_KRN; then
-        get_kernel
-    fi
     if ! $SKIP_BB; then
         get_busybox
+    fi
+    if ! $SKIP_KRN; then
+        get_kernel
     fi
 
     get_tic

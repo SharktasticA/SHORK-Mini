@@ -1,0 +1,48 @@
+#!/bin/sh
+
+######################################################
+## A small utility for persistently changing the    ##
+## system's display resolution                      ##
+######################################################
+## Kali (sharktastica.co.uk)                        ##
+######################################################
+
+
+
+set -e
+
+BOOTCFG="/boot/syslinux/syslinux.cfg"
+FB_RES="/etc/fb.res"
+RES="80x24|vga|svga|xga"
+
+if [ $# -ne 1 ]; then
+    printf "Changes the system's display resolution.\n"
+    echo "Usage: shorkres {$RES}"
+    echo "Current resolution: $([ -f $FB_RES ] && cat $FB_RES || echo 80x24)"
+
+    exit 1
+fi
+
+case "$1" in
+    80x24)
+        MODE="vga=normal"
+        ;;
+    vga)
+        MODE="vga=785"
+        ;;
+    svga)
+        MODE="vga=788"
+        ;;
+    xga)
+        MODE="vga=791"
+        ;;
+    *)
+        echo "Invalid resolution: $1"
+        echo "Available resolutions: $RES"
+        exit 1
+    ;;
+esac
+
+sed -i "s/vga=[^ ]*/$MODE/" "$BOOTCFG"
+echo $1 > $FB_RES
+echo "Set resolution: $1 (restart required before changes take affect)"

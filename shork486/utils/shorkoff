@@ -12,9 +12,21 @@
 
 cd /
 clear
-if [ -f goodbye ]; then
+
+COLS=$(stty size 2>/dev/null | awk '{print $2}')
+BANNER=""
+
+if [ "$COLS" -ge 128 ] && [ -f banners/goodbye-128 ]; then
+    BANNER="banners/goodbye-128"
+elif [ "$COLS" -ge 100 ] && [ -f banners/goodbye-100 ]; then
+    BANNER="banners/goodbye-100"
+elif [ "$COLS" -ge 80 ] && [ -f banners/goodbye-80 ]; then
+    BANNER="banners/goodbye-80"
+fi
+
+if [ -n "$BANNER" ]; then
     printf "\033[38;5;208m"
-    cat /goodbye
+    cat "$BANNER"
     printf "\033[0m"
 fi
 

@@ -8,19 +8,21 @@
 ######################################################
 
 
-print_main()
-{
-echo "Basic commands & utilities
---------------------------
-awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date,
-dmesg, echo, find, free, ftpget, ftpput, grep, head, hostname, ifconfig, kill,
-less, loadfont, loadkmap, ls, man, mkdir, mknod, mount, mv, nohup, ping, pkill,
-printf, pwd, readlink, rm, rmdir, route, sed, showkey, sleep, stat, sync, tee,
-test, top, touch, tr, udhcpc, umount, uname, vi, wget, which
 
-@NAME@ utilities (--shorkutils for more information)
--------------------------------------------------------
-shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff
+print_commands()
+{
+cat <<'EOF'
+Core commands & utilities
+-------------------------
+awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date,
+dmesg, echo, find, free, ftpget, ftpput, grep, halt, head, hostname, ifconfig,
+kill, less, loadfont, loadkmap, ls, man, mkdir, mknod, mount, mv, nohup, ping,
+pkill, printf, pwd, readlink, rm, rmdir, route, sed, showkey, sleep, stat, stty,
+sync, tee, test, top, touch, tr, udhcpc, umount, uname, vi, wget, which
+
+@NAME@ utilities
+-------------------
+shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres
 
 Bundled software
 ----------------
@@ -31,12 +33,45 @@ Supported Git commands
 add, blame, branch, checkout, cherry-pick, clean, clone, commit, config, diff,
 fetch, init, log, merge, mv, pull, push, rebase, reflog, remote, reset,
 restore, rm, show, stash, status, switch, tag
-" 
+EOF
 }
 
-print_shorkutils()
+print_intro()
 {
-echo "shorkcol - Persistently changes the terminal's foreground (text) colour. This
+cat <<'EOF'
+What is @NAME@?
+------------------
+@NAME@ is a minimal Linux distribution designed with 486SX compatibility and
+vintage PCs in mind. It focuses on being small (no more than 75MiB) whilst still
+providing a practical command set and networking utilities. It was inspired by
+FLOPPINUX, but expanded beyond floppy diskette limits.
+
+Getting started with @NAME@
+------------------------------
+1. Set your keyboard's layout with shorkmap.
+2. Pick a font colour for terminal text with shorkcol.
+3. (If compatible) Change your display's resolution with shorkres. A reboot is
+   required afterwards.
+4. Set your computer's name by editing /etc/hostname. A reboot is required
+   afterwards, or you can run:
+      hostname "$(cat /etc/hostname)"
+5. (If applicable) Test your network connection with ping. For example:
+      ping sharktastica.co.uk
+6. Run shorkfetch to see a quick overview of your system and environment.
+7. Check shorkhelp's other options to learn about all available commands and
+   other @NAME@ utilities.
+8. When you are finished using @NAME@, run shorkoff to safely bring your
+   system to a halt.
+EOF
+}
+
+print_utilities()
+{
+cat <<'EOF'
+@NAME@ utilities
+-------------------
+
+shorkcol - Persistently changes the terminal's foreground (text) colour. This
 utility takes one argument (a colour name); running it without an argument shows
 a list of possible colours.
 
@@ -44,8 +79,7 @@ shorkfetch - Displays basic system and environment information. Similar to
 fastfetch, neofetch, etc. This utility takes no arguments.
 
 shorkhelp - Shows lists of supported commands and bundled utilities. This
-utility takes the \"--shorkutils\" parameter to show this @NAME@
-utilities explanation.
+utility takes the "--commands", "--intro" and "--utiltiies" parameters.
 
 shorkmap - Persistently changes the system's keymap. This utility takes one
 argument (a keymap name); running it without an argument shows a list of
@@ -55,18 +89,36 @@ shorkoff - Brings the system to a halt and syncs the write cache, allowing the
 computer to be safely turned off. Similar to poweroff or shutdown -h. This
 utility takes no arguments.
 
-"
+shorkres - Persistently changes the system's display resolution (provided the
+hardware is compatible). This utility takes one argument (a resolution name);
+running it without an argument shows a list of possible resolution names.
+EOF
 }
 
 
 
 for arg in "$@"; do
     case "$arg" in
-        --shorkutils)
-            print_shorkutils
+        --commands)
+            clear
+            print_commands
+            return 1
+            ;;
+        --intro)
+            clear
+            print_intro
+            return 1
+            ;;
+        --utilities)
+            clear
+            print_utilities
             return 1
             ;;
     esac
 done
 
-print_main
+
+
+printf "Displays help and reference information for using @NAME@ and its built-in tools.\n"
+echo "Usage: shorkhelp {--commands|--intro|--utilities}"
+exit 1

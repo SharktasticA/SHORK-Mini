@@ -18,8 +18,14 @@ AVAILABLE="$(ls "$KEYMAPS"/*.kmap.bin 2>/dev/null | sed 's#.*/##; s#\.kmap.bin$#
 AVAILABLE="${AVAILABLE%|}"
 
 if [ $# -ne 1 ]; then
-    printf "Persistently changes the keymap.\n\n"
+    printf "Changes the system's keyboard layout (keymap).\n"
     echo "Usage: shorkmap {${AVAILABLE}}"
+    if [ -s $KEYMAP_CONF ]; then
+        CUR="$(cat $KEYMAP_CONF)"
+    else
+        CUR="us"
+    fi
+    echo "Current keymap: $CUR"
     exit 1
 fi
 
@@ -39,3 +45,5 @@ fi
 
 echo "$LAYOUT" > "$KEYMAP_CONF"
 sync
+
+echo "Applied keymap: $LAYOUT"

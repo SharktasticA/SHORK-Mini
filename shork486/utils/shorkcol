@@ -11,28 +11,91 @@
 
 set -e
 
+COLS="blue|blue_bright|cyan|cyan_bright|green|green_bright|grey|magenta|magenta_bright|red|red_bright|white|white_bright|yellow|yellow_bright"
+
+get_current_colour()
+{
+    case $(grep -o '\\033\[[0-9;]*m' /etc/profile | head -n1) in
+        '\033[0;34m')
+            echo "blue"
+            ;;
+        '\033[0;1;34m')
+            echo "blue_bright"
+            ;;
+        '\033[0;36m')
+            echo "cyan"
+            ;;
+        '\033[0;1;36m')
+            echo "cyan_bright"
+            ;;
+        '\033[0;32m')
+            echo "green"
+            ;;
+        '\033[0;1;32m')
+            echo "green_bright"
+            ;;
+        '\033[0;1;30m')
+            echo "grey"
+            ;;
+        '\033[0;35m')
+            echo "magenta"
+            ;;
+        '\033[0;1;35m')
+            echo "magenta_bright"
+            ;;
+        '\033[0;31m')
+            echo "red"
+            ;;
+        '\033[0;1;31m')
+            echo "red_bright"
+            ;;
+        '\033[0;37m')
+            echo "white"
+            ;;
+        '\033[0;1;37m')
+            echo "white_bright"
+            ;;
+        '\033[0;33m')
+            echo "yellow"
+            ;;
+        '\033[0;1;33m')
+            echo "yellow_bright"
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
 if [ $# -ne 1 ]; then
-    printf "Persistently changes the terminal's foreground (font) colour.\n\n"
-    echo "Usage: shorkcol {blue|cyan|green|magenta|red|white|yellow}"
+    printf "Changes the terminal's foreground (font) colour.\n"
+    echo "Usage: shorkcol {$COLS}"
+    echo "Current colour: $(get_current_colour)"
     exit 1
 fi
 
 case "$1" in
-    blue)     COL="0;1;34" ;;
-    cyan)     COL="0;36" ;;
-    green)    COL="0;32" ;;
-    magenta)  COL="0;35" ;;
-    red)      COL="0;31" ;;
-    white)    COL="0;37" ;;
-    yellow)   COL="0;1;33" ;;
+    blue)           COL="0;34" ;;
+    blue_bright)    COL="0;1;34" ;;
+    cyan)           COL="0;36" ;;
+    cyan_bright)    COL="0;1;36" ;;
+    green)          COL="0;32" ;;
+    green_bright)   COL="0;1;32" ;;
+    grey)           COL="0;1;30" ;;
+    magenta)        COL="0;35" ;;
+    magenta_bright) COL="0;1;35" ;;
+    red)            COL="0;31" ;;
+    red_bright)     COL="0;1;31" ;;
+    white)          COL="0;37" ;;
+    white_bright)   COL="0;1;37" ;;
+    yellow)         COL="0;33" ;;
+    yellow_bright)  COL="0;1;33" ;;
     *)
         echo "Invalid colour: $1"
-        echo "Available colours: blue|cyan|green|magenta|red|white|yellow"
+        echo "Available colours: $COLS"
         exit 1
         ;;
 esac
-
-
 
 sed -i "s/\\\\033\[[0-9;]*m/\\\\033[${COL}m/g" /etc/profile
 sed -i "s/\\\\033\[[0-9;]*m/\\\\033[${COL}m/g" /etc/init.d/rc
@@ -40,3 +103,5 @@ sed -i 's|sgr0=\\E\[0m\\E\[[0-9;]*m|sgr0=\\E[0m\\E['"$COL"'m|' /usr/share/termin
 tic -x -1 -o /usr/share/terminfo /usr/share/terminfo/src/terminfo.src
 
 kill -TERM "$PPID"
+
+echo -e "\033[${COL}mApplied colour: $1\033[0m"

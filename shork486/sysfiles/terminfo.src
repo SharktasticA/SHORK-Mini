@@ -6,7 +6,7 @@
 ## Kali (sharktastica.co.uk)                        ##
 ######################################################
 
-linux|linux console,
+linux|linux console 80x25,
     am,
     bce,
     eo,
@@ -28,6 +28,7 @@ linux|linux console,
     el=\E[K,
     home=\E[H,
     ind=\n,
+    ri=\E[M,
     bold=\E[1m,
     smul=\E[4m,
     rmul=\E[24m,
@@ -35,3 +36,20 @@ linux|linux console,
     sgr0=\E[0m\E[37m\E[40m,
     setaf=\E[3%p1%dm,
     setab=\E[4%p1%dm,
+    cnorm=\E[?25h,
+    civis=\E[?25l,
+
+linux-640x480|linux console 640x480,
+    use=linux,
+    cols#80,
+    lines#24,
+
+linux-800x600|linux console 800x600,
+    use=linux,
+    cols#100,
+    lines#37,
+
+linux-1024x768|linux console 1024x768,
+    use=linux,
+    cols#128,
+    lines#48,

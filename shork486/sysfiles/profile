@@ -15,7 +15,7 @@ export USER=root
 export LOGNAME=root
 export SHELL=/bin/sh
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
-export PS1='\033[37m\033[40m\w$ '
+export PS1='\033[0;37m\033[40m\w$ '
 
 shorkcol()
 {
