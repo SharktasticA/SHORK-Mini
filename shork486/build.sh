@@ -314,7 +314,7 @@ get_i486_musl_cc()
     [ -d "i486-linux-musl-cross" ] || tar xvf i486-linux-musl-cross.tgz
 }
 
-# Download and compile ncurses (required for other programs)
+# Download and compile ncurses (required for nano and tic)
 get_ncurses()
 {
     cd "$CURR_DIR/build"
@@ -341,24 +341,6 @@ get_ncurses()
     echo -e "${GREEN}Compiling ncurses...${RESET}"
     ./configure --host=${HOST} --prefix="${PREFIX}" --with-normal --without-shared --without-debug --without-cxx --enable-widec --without-termlib CC="${CC}"
     make -j$(nproc) && make install
-}
-
-# Download and build tic (required for shorkcol)
-get_tic()
-{
-    cd "$CURR_DIR/build"
-
-    # Check if program already built, skip if so
-    if [ ! -f "${DESTDIR}/usr/bin/tic" ]; then
-        echo -e "${GREEN}Building tic...${RESET}"
-        cd $CURR_DIR/build/ncurses/
-        ./configure --host=${HOST} --prefix=/usr --with-normal --without-shared --without-debug --without-cxx --enable-widec CC="${CC}" CFLAGS="-Os -static"
-        make -C progs tic -j$(nproc)
-        sudo install -D progs/tic "${DESTDIR}/usr/bin/tic"
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/tic"
-    else
-        echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
-    fi
 }
 
 # Download and compile zlib (required for Git)
@@ -465,6 +447,24 @@ get_curl()
     ./configure --build="$(gcc -dumpmachine)" --host="${HOST}" --prefix="${PREFIX}/i486-linux-musl" --with-openssl="${PREFIX}/i486-linux-musl" --without-libpsl --disable-shared
     make -j$(nproc)
     make install
+}
+
+# Download and build tic (required for shorkcol)
+get_tic()
+{
+    cd "$CURR_DIR/build"
+
+    # Check if program already built, skip if so
+    if [ ! -f "${DESTDIR}/usr/bin/tic" ]; then
+        echo -e "${GREEN}Building tic...${RESET}"
+        cd $CURR_DIR/build/ncurses/
+        ./configure --host=${HOST} --prefix=/usr --with-normal --without-shared --without-debug --without-cxx --enable-widec CC="${CC}" CFLAGS="-Os -static"
+        make -C progs tic -j$(nproc)
+        sudo install -D progs/tic "${DESTDIR}/usr/bin/tic"
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/tic"
+    else
+        echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
+    fi
 }
 
 
@@ -1091,7 +1091,6 @@ if ! $MINIMAL; then
     get_prerequisites
 
     get_i486_musl_cc
-    get_ncurses
 
     if ! $SKIP_BB; then
         get_busybox
@@ -1100,7 +1099,7 @@ if ! $MINIMAL; then
         get_kernel
     fi
 
-    get_tic
+    get_ncurses
 
     if $NEED_ZLIB; then
         get_zlib
@@ -1124,6 +1123,8 @@ if ! $MINIMAL; then
     if ! $SKIP_GIT; then
         get_git
     fi
+    
+    get_tic
 else
     echo -e "${LIGHT_RED}Minimal mode specified, skipping to building the file system...${RESET}"
 fi
