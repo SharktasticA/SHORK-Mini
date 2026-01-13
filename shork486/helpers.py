@@ -23,7 +23,7 @@ def build_pci_ids():
     ]
 
     vendor_whitelist = [
-        "3dfx Interactive", "Advanced Micro Devices", "Alliance Semiconductor Corporation", "Ambarella", "ASPEED Technology", "Cirrus Logic", "Google", "Hangzhou Hikvision Digital Technology", "Intel Corporation", "Kinetic Technologies", "Matrox Electronics Systems", "Neomagic Corporation", "NVIDIA Corporation", "Number Nine Visual Technology", "Red Hat", "S3 Graphics", "SGS Thomson Microelectronics", "Silicon Integrated Systems", "Trident Microsystems", "VIA Technologies", "VMware", "Western Digital", "WCH.CN", "Zhaoxin", "Loongson Technology", "Display controller", "Unclassified device", "AMP", "Datacube", "Ziatech", "RDC Semiconductor", "XDX Computing Technology", "3DLabs"
+        "3dfx interactive", "advanced micro devices", "alliance semiconductor corporation", "ambarella", "aspeed technology", "cirrus logic", "google", "hangzhou hikvision digital technology", "intel corporation", "kinetic technologies", "matrox electronics systems", "neomagic corporation", "nvidia corporation", "number nine visual technology", "red hat", "s3 graphics", "sgs thomson microelectronics", "silicon integrated systems", "trident microsystems", "via technologies", "vmware", "western digital", "wch.cn", "zhaoxin", "loongson technology", "display controller", "unclassified device", "amp", "datacube", "ziatech", "rdc semiconductor", "xdx computing technology", "3dlabs"
     ]
 
     for path in ("/usr/share/misc/pci.ids", "/usr/share/hwdata/pci.ids"):
@@ -45,7 +45,7 @@ def build_pci_ids():
                 continue
 
             lower = stripped.lower()
-            if any(term in lower for term in term_blacklist) and not any(term in lower for term in term_whitelist):
+            if any(term in lower for term in term_blacklist) and not any(term in lower for term in term_whitelist) and not any(term in lower for term in vendor_whitelist):
                 continue
 
             tabs = len(line) - len(line.lstrip("\t"))
@@ -68,7 +68,8 @@ def build_pci_ids():
             if not vendor["devices"]:
                 continue
 
-            if not any(manu.lower() in vendor["line"].lower() for manu in vendor_whitelist):
+            vendor_name = vendor["line"].lower()
+            if not any(manu in vendor_name or vendor_name in manu for manu in vendor_whitelist):
                 continue
 
             f.write(vendor["line"] + "\n")
