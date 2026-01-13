@@ -4,7 +4,7 @@ A minimal Linux distribution originally based on [FLOPPINUX's](https://github.co
 
 A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~10MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
 
-<img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="screenshots/86box_cold_boot.webp" width="512px">
+<img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="screenshots/cold_boot.png" width="512px">
 
 ## Usage
 
