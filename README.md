@@ -1,6 +1,6 @@
 # SHORK 486
 
-A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, specifically with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
+A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, often with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
 A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~10MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
 
@@ -72,7 +72,10 @@ It is recommended to move or copy the images out of this directory before extens
 * `build.sh`: Contains the complete download and compilation process that reproduces a `shork486.img` disk drive image. The following parameters are supported:
 
     * **Always (re)build** (`--always-build`): can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
-        * This does nothing if the "skip kernel" parameter is also used.
+        * This does nothing if the "minimal" or "skip kernel" parameters are also used.
+    * **Enable SATA** (`--enable-sata`): can be used to enable SATA AHCI support in the Linux kernel. This is provided in case someone wanted to try SHORK 486 on a more modern system - it is not needed for any 486-era (or indeed '90s) hardware.
+        * This will add ~7MiB to idle RAM usage.
+        * This does nothing if the "minimal" or "skip kernel" parameters are also used.
     * **Is Arch** (`--is-arch`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on an Arch-based system.
         * This does nothing if the "minimal" parameter is also used.
     * **Is Debian** (`--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.

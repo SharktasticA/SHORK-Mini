@@ -50,63 +50,32 @@ echo -e "${BLUE}============================${RESET}"
 
 
 # Process arguments
-MINIMAL=false
-SKIP_KRN=false
-SKIP_BB=false
-SKIP_NANO=false
-SKIP_TNFTP=false
-SKIP_DROPBEAR=false
-SKIP_GIT=false
-SKIP_PCIIDS=false
-SKIP_KEYMAPS=false
 ALWAYS_BUILD=false
 DONT_DEL_ROOT=false
+ENABLE_SATA=false
 IS_ARCH=false
 IS_DEBIAN=false
+KEYMAP=""
+MINIMAL=false
 NO_MENU=false
-TARGET_MIB=""
 SET_KEYMAP=""
+SKIP_BB=false
+SKIP_DROPBEAR=false
+SKIP_GIT=false
+SKIP_KEYMAPS=false
+SKIP_KRN=false
+SKIP_NANO=false
+SKIP_PCIIDS=false
+SKIP_TNFTP=false
+TARGET_MIB=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --target-mib=*)
-            TARGET_MIB="${1#*=}"
-            ;;
-        --set-keymap=*)
-            KEYMAP="${1#*=}"
-            ;;
-        --minimal)
-            MINIMAL=true
-            DONT_DEL_ROOT=true
-            ;;
-        --skip-kernel)
-            SKIP_KRN=true
-            DONT_DEL_ROOT=true
-            ;;
-        --skip-busybox)
-            SKIP_BB=true
-            DONT_DEL_ROOT=true
-            ;;
-        --skip-nano)
-            SKIP_NANO=true
-            ;;
-        --skip-tnftp)
-            SKIP_TNFTP=true
-            ;;
-        --skip-dropbear)
-            SKIP_DROPBEAR=true
-            ;;
-        --skip-git)
-            SKIP_GIT=true
-            ;;
-        --skip-pciids)
-            SKIP_PCIIDS=true
-            ;;
-        --skip-keymaps)
-            SKIP_KEYMAPS=true
-            ;;
         --always-build)
             ALWAYS_BUILD=true
+            ;;
+        --enable-sata)
+            ENABLE_SATA=true
             ;;
         --is-arch)
             IS_ARCH=true
@@ -116,12 +85,49 @@ while [ $# -gt 0 ]; do
             IS_ARCH=false
             IS_DEBIAN=true
             ;;
+        --minimal)
+            MINIMAL=true
+            DONT_DEL_ROOT=true
+            ;;
         --no-menu)
             NO_MENU=true
+            ;;
+        --set-keymap=*)
+            KEYMAP="${1#*=}"
+            ;;
+        --skip-busybox)
+            SKIP_BB=true
+            DONT_DEL_ROOT=true
+            ;;
+        --skip-dropbear)
+            SKIP_DROPBEAR=true
+            ;;
+        --skip-git)
+            SKIP_GIT=true
+            ;;
+        --skip-keymaps)
+            SKIP_KEYMAPS=true
+            ;;
+        --skip-kernel)
+            SKIP_KRN=true
+            DONT_DEL_ROOT=true
+            ;;
+        --skip-nano)
+            SKIP_NANO=true
+            ;;
+        --skip-pciids)
+            SKIP_PCIIDS=true
+            ;;
+        --skip-tnftp)
+            SKIP_TNFTP=true
+            ;;
+        --target-mib=*)
+            TARGET_MIB="${1#*=}"
             ;;
     esac
     shift
 done
+
 
 
 
@@ -516,7 +522,19 @@ download_kernel()
     if [ ! -d "linux" ]; then
         git clone --depth=1 --branch v$KERNEL_VER https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git || true
         cd "$CURR_DIR/build/linux"
-        cp $CURR_DIR/configs/linux.config .config
+        configure_kernel
+    fi
+}
+
+configure_kernel()
+{
+    echo -e "${GREEN}Copying base SHORK 486 Linux kernel .config file...${RESET}"
+    cp $CURR_DIR/configs/linux.config .config
+
+    if $ENABLE_SATA; then
+        echo -e "${GREEN}Enabling SATA support...${RESET}"
+        sed -i 's/CONFIG_PAHOLE_VERSION=0/CONFIG_PAHOLE_VERSION=130/' .config
+        sed -i 's/CONFIG_SATA_AHCI is not set/CONFIG_SATA_AHCI=y\nCONFIG_SATA_MOBILE_LPM_POLICY=3/' .config
     fi
 }
 
@@ -526,7 +544,7 @@ reset_kernel()
     echo -e "${GREEN}Resetting and cleaning Linux kernel...${RESET}"
     git reset --hard || true
     make clean
-    cp $CURR_DIR/configs/linux.config .config
+    configure_kernel
 }
 
 reclone_kernel()
@@ -536,7 +554,6 @@ reclone_kernel()
     sudo rm -r linux
     download_kernel
 }
-
 compile_kernel()
 {   
     cd "$CURR_DIR/build/linux/"

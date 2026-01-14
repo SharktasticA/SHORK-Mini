@@ -116,8 +116,11 @@ END {
 }' /proc/cpuinfo)"
 
 [ "$CORE_COUNT" -eq 0 ] && CORE_COUNT="$THREAD_COUNT"
-
-CPU="${CPU_NAME} (${CORE_COUNT}C/${THREAD_COUNT}T)"
+CPU_STR="${CORE_COUNT}C"
+if [ "$CORE_COUNT" != "$THREAD_COUNT" ]; then
+    CPU_STR="${CPU_STR}/${THREAD_COUNT}T"
+fi
+CPU="${CPU_NAME} (${CPU_STR})"
 
 
 
