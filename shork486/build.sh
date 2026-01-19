@@ -87,7 +87,6 @@ while [ $# -gt 0 ]; do
             ;;
         --minimal)
             MINIMAL=true
-            DONT_DEL_ROOT=true
             ;;
         --no-menu)
             NO_MENU=true
@@ -128,6 +127,20 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+# Overrides to ensure "minimal" parameter always takes precedence
+if $MINIMAL; then
+    ENABLE_SATA=false
+    NO_MENU=true
+    SET_KEYMAP=""
+    SKIP_BB=false
+    SKIP_DROPBEAR=true
+    SKIP_GIT=true
+    SKIP_KEYMAPS=true
+    SKIP_KRN=true
+    SKIP_NANO=true
+    SKIP_PCIIDS=true
+    SKIP_TNFTP=true
+fi
 
 
 
@@ -195,6 +208,7 @@ DESTDIR="${CURR_DIR}/build/root"
 HOST=i486-linux-musl
 RANLIB="${PREFIX}/bin/i486-linux-musl-ranlib"
 STRIP="${PREFIX}/bin/i486-linux-musl-strip"
+SYSROOT="${PREFIX}/i486-linux-musl"
 
 
 
@@ -355,7 +369,7 @@ get_zlib()
     cd "$CURR_DIR/build"
 
     # Skip if already built
-    if [ -f "${PREFIX}/i486-linux-musl/lib/libz.a" ]; then
+    if [ -f "$SYSROOT/usr/lib/libz.a" ]; then
         echo -e "${LIGHT_RED}zlib already built, skipping...${RESET}"
         return
     fi
@@ -372,15 +386,15 @@ get_zlib()
         cd zlib
     fi
 
-    # Compile and install
     echo -e "${GREEN}Compiling zlib...${RESET}"
-    CC="${CC}" \
-    CFLAGS="-Os -march=i486 -static" \
-    ./configure --static --prefix="${PREFIX}/i486-linux-musl" 
-    make clean
+    make clean || true
+    CC="$CC" \
+    CFLAGS="-Os -march=i486 -static --sysroot=$SYSROOT" \
+    ./configure  --static --prefix=/usr
     make -j$(nproc)
-    make install
+    make DESTDIR="$SYSROOT" install
 }
+
 
 # Download and compile OpenSSL (required for curl and Git/HTTPS remote)
 get_openssl()
@@ -388,7 +402,7 @@ get_openssl()
     cd "$CURR_DIR/build"
 
     # Skip if already built
-    if [ -f "${PREFIX}/i486-linux-musl/lib/libssl.a" ]; then
+    if [ -f "$SYSROOT/lib/libssl.a" ]; then
         echo -e "${LIGHT_RED}OpenSSL already built, skipping...${RESET}"
         return
     fi
@@ -407,7 +421,7 @@ get_openssl()
 
     # Compile and install
     echo -e "${GREEN}Compiling OpenSSL...${RESET}"
-    ./Configure linux-generic32 no-shared no-tests no-dso no-engine --prefix="${PREFIX}/i486-linux-musl" --openssldir=/etc/ssl CC="${CC} -latomic" AR="${AR}" RANLIB="${RANLIB}"
+    ./Configure linux-generic32 no-shared no-tests no-dso no-engine --prefix="$SYSROOT" --openssldir=/etc/ssl CC="${CC} -latomic" AR="${AR}" RANLIB="${RANLIB}"
     make -j$(nproc)
     make install_sw
 }
@@ -418,7 +432,7 @@ get_curl()
     cd "$CURR_DIR/build"
 
     # Skip if already built
-    if [ -f "${PREFIX}/i486-linux-musl/lib/libcurl.a" ]; then
+    if [ -f "$SYSROOT/lib/libcurl.a" ]; then
         echo -e "${LIGHT_RED}curl already built, skipping...${RESET}"
         return
     fi
@@ -445,12 +459,12 @@ get_curl()
 
     # Compile and install
     echo -e "${GREEN}Compiling curl...${RESET}"
-    CPPFLAGS="-I${PREFIX}/i486-linux-musl/include" \
-    LDFLAGS="-L${PREFIX}/i486-linux-musl/lib -static" \
+    CPPFLAGS="-I$SYSROOT/include" \
+    LDFLAGS="-L$SYSROOT/lib -static" \
     LIBS="-lssl -lcrypto -lpthread -ldl -latomic" \
     CC="${CC}" \
     CFLAGS="-Os -march=i486 -static" \
-    ./configure --build="$(gcc -dumpmachine)" --host="${HOST}" --prefix="${PREFIX}/i486-linux-musl" --with-openssl="${PREFIX}/i486-linux-musl" --without-libpsl --disable-shared
+    ./configure --build="$(gcc -dumpmachine)" --host="${HOST}" --prefix="$SYSROOT" --with-openssl="$SYSROOT" --without-libpsl --disable-shared
     make -j$(nproc)
     make install
 }
@@ -1100,50 +1114,45 @@ convert_disk_img()
 
 mkdir -p images
 
-if ! $MINIMAL; then
-    if ! $DONT_DEL_ROOT; then
-        delete_root_dir
-    fi
-    mkdir -p build
-    get_prerequisites
+if ! $DONT_DEL_ROOT; then
+    delete_root_dir
+fi
 
-    get_i486_musl_cc
+mkdir -p build
+get_prerequisites
+get_i486_musl_cc
 
-    if ! $SKIP_BB; then
-        get_busybox
-    fi
-    if ! $SKIP_KRN; then
-        get_kernel
-    fi
+if ! $SKIP_BB; then
+    get_busybox
+fi
+if ! $SKIP_KRN; then
+    get_kernel
+fi
 
-    get_ncurses
+get_ncurses
+get_tic
 
-    if $NEED_ZLIB; then
-        get_zlib
-    fi
-    if $NEED_OPENSSL; then
-        get_openssl
-    fi
-    if $NEED_CURL; then
-        get_curl
-    fi
+if $NEED_ZLIB; then
+    get_zlib
+fi
+if $NEED_OPENSSL; then
+    get_openssl
+fi
+if $NEED_CURL; then
+    get_curl
+fi
 
-    if ! $SKIP_NANO; then
-        get_nano
-    fi
-    if ! $SKIP_TNFTP; then
-        get_tnftp
-    fi
-    if ! $SKIP_DROPBEAR; then
-        get_dropbear
-    fi
-    if ! $SKIP_GIT; then
-        get_git
-    fi
-    
-    get_tic
-else
-    echo -e "${LIGHT_RED}Minimal mode specified, skipping to building the file system...${RESET}"
+if ! $SKIP_DROPBEAR; then
+    get_dropbear
+fi
+if ! $SKIP_GIT; then
+    get_git
+fi
+if ! $SKIP_NANO; then
+    get_nano
+fi
+if ! $SKIP_TNFTP; then
+    get_tnftp
 fi
 
 find_mbr_bin

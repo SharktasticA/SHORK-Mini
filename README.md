@@ -8,7 +8,7 @@ A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. 
 
 ## Usage
 
-Please read "Notice & disclaimers" at the end of this readme before proceeding.
+Please read "Notice & disclaimers" at the end of this readme before proceeding. Compiling SHORK 486 may require up to 4GiB of disk space for downloaded source code.
 
 ### Native compilation
 
@@ -72,43 +72,56 @@ It is recommended to move or copy the images out of this directory before extens
 * `build.sh`: Contains the complete download and compilation process that reproduces a `shork486.img` disk drive image. The following parameters are supported:
 
     * **Always (re)build** (`--always-build`): can be used to ensure the kernel is always (re)built. This will skip the prompt that appears if the kernel is already downloaded and built, acting like the user selected the "Reset & clean" option.
-        * This does nothing if the "minimal" or "skip kernel" parameters are also used.
+        * This does nothing if the "skip kernel" parameter is also used.
+
     * **Enable SATA** (`--enable-sata`): can be used to enable SATA AHCI support in the Linux kernel. This is provided in case someone wanted to try SHORK 486 on a more modern system - it is not needed for any 486-era (or indeed '90s) hardware.
         * This will add ~7MiB to idle RAM usage.
         * This does nothing if the "minimal" or "skip kernel" parameters are also used.
+
     * **Is Arch** (`--is-arch`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on an Arch-based system.
-        * This does nothing if the "minimal" parameter is also used.
+
     * **Is Debian** (`--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
-        * This does nothing if the "minimal" parameter is also used.
-    * **Minimal** (`--minimal`): can be used to skip to assembling the file system. This is useful if you want to rebuild the disk drive images after only making changes to `sysfiles`.* **
+
+    * **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a sub-10MiB but working SHORK 486 system for IDE-based hosts.
+        * This is like using the "no boot menu", "skip Dropbear", "skip Git", "skip keymaps", "skip nano", "skip pci.ids" and "skip tnftp" parameters together.
+
     * **No boot menu** (`--no-menu`): can be used to remove SHORK 486's boot menu.
         * This will save ~512KiB to the boot file system. SHORK 486 will no longer provide the option to boot in a debug/verbose mode.
+
     * **Set keymap** (`--set-keymap`): can be used to specify SHORK 486's default keyboard layout (keymap). 
         * Example usage: `--keymap=de` to specify a German keyboard layout.
         * If absent, U.S. English is used as the default keyboard layout.
-        * This does nothing if the "skip keymaps" parameter is also used.
+        * This does nothing if the "minimal" or "skip keymaps" parameters are also used.
+
     * **Skip kernel** (`--skip-kernel`): can be used to skip downloading and compiling the kernel.* **
-        * This does nothing if the "minimal" parameter is also used.
+
     * **Skip BusyBox** (`--skip-busybox`): can be used to skip downloading and compiling BusyBox.* **
         * This does nothing if the "minimal" parameter is also used.
+
     * **Skip Dropbear** (`--skip-dropbear`): can be used to skip downloading and compiling Dropbear.
         * This will save ~355KiB and 3 files on the root file system. SHORK 486 will lose SCP and SSH capabilities.
-        * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
+        * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
     * **Skip Git** (`--skip-git`): can be used to skip downloading and compiling Git and its prerequisites (zlib, OpenSSL and curl).
         * This will save ~19MiB and 192 files on the root file system. SHORK 486 will lose its git client.
-        * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
+        * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
     * **Skip keymaps** (`--skip-keymaps`): can be used to skip installing keymaps.
         * This will save ~63.5KiB and 26 files on the root file system. SHORK 486 will stop supporting keyboard layouts other than ANSI U.S. English. `shorkmap` will not be included.
-        * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
+        * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
     * **Skip nano** (`--skip-nano`): can be used to skip downloading and compiling nano.
         * This will save ~1MiB and 60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
-        * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
+        * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
     * **Skip pci.ids** (`--skip-pciids`): can be used to skip building and including a `pci.ids` file.
         * This will save ~75-100KiB and one file on the root file system. `shorkfetch` will lose its "GPU" field.
         * GPU identification on some 486SX configurations can take a while, so excluding this may be desirable to speed up `shorkfetch` significantly in such scenarios.
+
     * **Skip tnftp** (`--skip-tnftp`): can be used to skip downloading and compiling tnftp.
         * This will save ~304KiB and 3 files on the root file system. SHORK 486 will lose FTP capabilities.
-        * This does nothing if the "minimal", "skip kernel" or "skip BusyBox" parameters are also used.
+        * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
     * **Target MiB** (`--target-mib`): can be used to specify a target total size in mebibytes for SHORK 486's disk drive images.
         * Example usage: `--target-mib=100` to specify a 100MiB target size.
         * The build script will always calculate the minimum required disk drive image size, and if the target is below that, it will default to using this calculated size.
@@ -191,3 +204,4 @@ Running `build.sh` for native compilation will automatically perform several tas
 
 Running `clean.sh` will delete everything `build.sh` has downloaded, created or generated, including the `build` folder and its contents. `.gitingore` indicates what would be deleted. If you made any manual changes to or in a file or directory covered by that, they will be lost.
 
+At present, you are always the root user when using SHORK 486. Make sure to act and use it considerately and responsibly.

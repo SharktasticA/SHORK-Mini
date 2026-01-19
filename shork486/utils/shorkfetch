@@ -15,7 +15,7 @@ $(free | awk '/Mem:/ {printf "%d %.1f\n", $2/1024, $3/1024}')
 EOF
 
 if [ -n "$MEM_TOTAL" ] && [ -n "$MEM_USED" ]; then
-    MEMORY="${MEM_USED}MB / ${MEM_TOTAL}MB"
+    MEMORY="${MEM_USED}MiB / ${MEM_TOTAL}MiB"
 else
     MEMORY="unknown"
 fi
