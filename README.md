@@ -2,7 +2,7 @@
 
 A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, often with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
-A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the nano and vi editors, basic ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~10MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
+A complete SHORK 486 build aims to take up no more than ~75MiB inside the disk. For that size, a complete SHORK 486 build offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! With 'aggressive' use of the build script skip parameters to skip building bundled utilities, this can be brought down to under ~5MiB whilst still including the typical commands as before, the vi editor, and basic networking support.
 
 <img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="screenshots/cold_boot.png" width="512px">
 
@@ -41,16 +41,21 @@ It is recommended to move or copy the images out of this directory before extens
 ### Included software
 
 * ftp (FTP client, tnftp)
+* emacs (text editor, [Mg](https://github.com/troglobit/mg))
 * git (Git source control client)
 * nano (text editor)
-* scp (SCP client, Dropbear)
-* ssh (SSH client, Dropbear)
+* scp (SCP client, [Dropbear](https://github.com/mkj/dropbear))
+* ssh (SSH client, [Dropbear](https://github.com/mkj/dropbear))
 
 ### Custom utilities 
 
 * **shorkcol** - Persistently changes the terminal's foreground (text) colour. Takes one argument (a colour name); running it without an argument shows a list of possible colours.
 * **shorkfetch** - Displays basic system and environment information. Similar to fastfetch, neofetch, etc. Takes no arguments.
-* **shorkhelp** - Shows lists of supported commands and bundled utilities. Takes the `--shorkutils` parameter to show this SHORK 486 utilities explanation.
+* **shorkhelp** - Provides help with using SHORK 486 via command lists, guides and cheatsheets. Requires one of four parameters:
+    * `--commands`: Shows a command list including core commands and utilities, SHORK 486 utilities, bundled software, and supported Git commands.
+    * `--emacs`: Shows an Emacs (Mg) cheatsheet.
+    * `--intro`: Shows an introductory paragraph for SHORK 486 and a simple getting started guide.
+    * `--utilities`: Shows a list of SHORK 486 utilities with a brief explanation of what they do.
 * **shorkmap** - Persistently changes the system's keyboard layout (keymap). Takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
 * **shorkoff** - Brings the system to a halt and syncs the write cache, allowing the computer to be safely turned off. Similar to `poweroff` or `shutdown -h`. Takes no arguments.
 * **shorkres** - Persistently changes the system's display resolution (provided the hardware is compatible). Takes one argument (a resolution name); running it without an argument shows a list of possible resolution names.
@@ -82,8 +87,8 @@ It is recommended to move or copy the images out of this directory before extens
 
     * **Is Debian** (`--is-debian`): can be used skip the host Linux distribution selection prompt and the build script will assume it is running on a Debian-based system.
 
-    * **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a sub-10MiB but working SHORK 486 system for IDE-based hosts.
-        * This is like using the "no boot menu", "skip Dropbear", "skip Git", "skip keymaps", "skip nano", "skip pci.ids" and "skip tnftp" parameters together.
+    * **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a sub-5MiB but working SHORK 486 system for IDE-based hosts.
+        * This is like using the "no boot menu", "skip Dropbear", "skip Emacs", "skip Git", "skip keymaps", "skip nano", "skip pci.ids" and "skip tnftp" parameters together.
 
     * **No boot menu** (`--no-menu`): can be used to remove SHORK 486's boot menu.
         * This will save ~512KiB to the boot file system. SHORK 486 will no longer provide the option to boot in a debug/verbose mode.
@@ -102,6 +107,10 @@ It is recommended to move or copy the images out of this directory before extens
         * This will save ~355KiB and 3 files on the root file system. SHORK 486 will lose SCP and SSH capabilities.
         * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
 
+    * **Skip Emacs** (`--skip-emacs`): can be used to skip downloading and compiling Mg ("Micro (GNU) Emacs"-like text editor).
+        * This will save ~329KiB and 3 files on the root file system. `vi` (always) or nano (can also be removed) are available are alternative editors.
+        * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
     * **Skip Git** (`--skip-git`): can be used to skip downloading and compiling Git and its prerequisites (zlib, OpenSSL and curl).
         * This will save ~19MiB and 192 files on the root file system. SHORK 486 will lose its git client.
         * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
@@ -111,7 +120,7 @@ It is recommended to move or copy the images out of this directory before extens
         * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
 
     * **Skip nano** (`--skip-nano`): can be used to skip downloading and compiling nano.
-        * This will save ~1MiB and 60 files on the root file system. `vi` is included with BusyBox and can be used if you wish to remove nano.
+        * This will save ~1MiB and 58 files on the root file system. `vi` (always) or Mg (can also be removed) are available are alternative editors.
         * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
 
     * **Skip pci.ids** (`--skip-pciids`): can be used to skip building and including a `pci.ids` file.

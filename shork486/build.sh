@@ -61,6 +61,7 @@ NO_MENU=false
 SET_KEYMAP=""
 SKIP_BB=false
 SKIP_DROPBEAR=false
+SKIP_EMACS=false
 SKIP_GIT=false
 SKIP_KEYMAPS=false
 SKIP_KRN=false
@@ -101,6 +102,9 @@ while [ $# -gt 0 ]; do
         --skip-dropbear)
             SKIP_DROPBEAR=true
             ;;
+        --skip-emacs)
+            SKIP_EMACS=true
+            ;;
         --skip-git)
             SKIP_GIT=true
             ;;
@@ -134,6 +138,7 @@ if $MINIMAL; then
     SET_KEYMAP=""
     SKIP_BB=false
     SKIP_DROPBEAR=true
+    SKIP_EMACS=true
     SKIP_GIT=true
     SKIP_KEYMAPS=true
     SKIP_KRN=true
@@ -189,6 +194,7 @@ BUSYBOX_VER="1_36_1"
 NANO_VER="5.7"
 TNFTP_VER="20230507"
 DROPBEAR_VER="2022.83"
+MG_VER="3.7"
 GIT_VER="2.52.0"
 ZLIB_VER="1.3.1.2"
 OPENSSL_VER="3.6.0"
@@ -648,6 +654,129 @@ get_v86d()
 ## Packaged software building                       ##
 ######################################################
 
+# Download and compile Dropbear for its SCP and SSH clients
+get_dropbear()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "${DESTDIR}/usr/bin/ssh" ]; then
+        echo -e "${LIGHT_RED}Dropbear already built, skipping...${RESET}"
+        return
+    fi
+
+    # Download source
+    if [ -d dropbear ]; then
+        echo -e "${YELLOW}Dropbear source already present, resetting...${RESET}"
+        cd dropbear
+        git config --global --add safe.directory "$CURR_DIR/build/dropbear"
+        git reset --hard
+        git checkout "DROPBEAR_${DROPBEAR_VER}" || true
+    else
+        echo -e "${GREEN}Downloading Dropbear...${RESET}"
+        git clone --branch DROPBEAR_${DROPBEAR_VER} https://github.com/mkj/dropbear.git
+        cd dropbear
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling Dropbear...${RESET}"
+    unset LIBS
+    ./configure --host=${HOST} --prefix=/usr --disable-zlib --disable-loginfunc --disable-syslog --disable-lastlog --disable-utmp --disable-utmpx --disable-wtmp --disable-wtmpx CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486 -static" LDFLAGS="-static"
+    make PROGRAMS="dbclient scp" -j$(nproc)
+    sudo make DESTDIR="${DESTDIR}" install PROGRAMS="dbclient scp"
+    sudo mv "${DESTDIR}/usr/bin/dbclient" "${DESTDIR}/usr/bin/ssh"
+    sudo "${STRIP}" "${DESTDIR}/usr/bin/ssh"
+    sudo "${STRIP}" "${DESTDIR}/usr/bin/scp"
+}
+
+# Download and compile Emacs (Mg)
+get_emacs()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "${DESTDIR}/usr/bin/mg" ]; then
+        echo -e "${LIGHT_RED}Mg already built, skipping...${RESET}"
+        return
+    fi
+
+    # Download source
+    if [ -d mg ]; then
+        echo -e "${YELLOW}Mg source already present, resetting...${RESET}"
+        cd mg
+        git reset --hard
+        git checkout "v${MG_VER}" || true
+    else
+        echo -e "${GREEN}Downloading Mg...${RESET}"
+        git clone --branch "v${MG_VER}" https://github.com/troglobit/mg.git
+        cd mg
+    fi
+
+    # Patch to prevent "~" backup files from spawning after saving
+    sudo sed -i 's/int	  	 nobackups = 0;/int	  	 nobackups = 1;/g' src/main.c
+
+    # Remove tutorial hint as we will delete the docs later to save space
+    sudo sed -i 's/| C-h t  tutorial//g' src/help.c
+
+    # Compile and install
+    echo -e "${GREEN}Compiling Mg...${RESET}"
+    ./autogen.sh
+    ./configure --host=${HOST} --prefix=/usr CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486 -static"
+    make -j$(nproc)
+    sudo make DESTDIR="${DESTDIR}" install
+
+    # Remove unneeded docs/tutorials
+    sudo rm -r "${DESTDIR}/usr/share/mg"
+    sudo rm -r "${DESTDIR}/usr/share/doc/mg"
+
+    # Allow running "emacs" to run mg
+    sudo ln -sf mg "${DESTDIR}/usr/bin/emacs"
+}
+
+# Download and compile Git
+get_git()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "${DESTDIR}/usr/bin/git" ]; then
+        echo -e "${LIGHT_RED}Git already built, skipping...${RESET}"
+        return
+    fi
+
+    # Download source
+    if [ -d git ]; then
+        echo -e "${YELLOW}Git source already present, resetting...${RESET}"
+        cd git
+        git config --global --add safe.directory "$CURR_DIR/build/git"
+        git reset --hard
+        git checkout "v${GIT_VER}" || true
+    else
+        echo -e "${GREEN}Downloading Git...${RESET}"
+        git clone --branch "v${GIT_VER}" https://github.com/git/git.git
+        cd git
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling Git...${RESET}"
+    make configure
+    ./configure --host=${HOST} --prefix=/usr CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486 -static -I${PREFIX}/include" LDFLAGS="-static -L${PREFIX}/lib"
+    sudo cp $CURR_DIR/configs/git.config.mak config.mak
+    make -j$(nproc)
+    sudo make DESTDIR="${DESTDIR}" install
+    sudo "${STRIP}" "${DESTDIR}/usr/bin/git" 2>/dev/null || true
+
+    # Trim fat
+    cd "$DESTDIR/usr/libexec/git-core"
+    sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
+
+    cd "$DESTDIR/usr/bin"
+    sudo rm -f git-shell git-cvsserver scalar
+    sudo rm -rf "$DESTDIR/usr/share/gitweb" "$DESTDIR/usr/share/perl5" "$DESTDIR/usr/share/git-core/templates" "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
+    
+    sudo mkdir -p "$DESTDIR/usr/share/git-core/templates"
+}
+
 # Download and compile nano
 get_nano()
 {
@@ -695,6 +824,9 @@ get_nano()
 
     make TINFO_LIBS="" -j$(nproc)
     make DESTDIR="${DESTDIR}" install
+
+    # Remove unneeded docs/tutorials
+    sudo rm -r "${DESTDIR}/usr/share/doc/nano"
 }
 
 # Download and compile tnftp
@@ -735,85 +867,6 @@ get_tnftp()
     make -j$(nproc)
     make DESTDIR="${DESTDIR}" install
     ln -sf tnftp "${DESTDIR}/usr/bin/ftp"
-}
-
-# Download and compile Dropbear for its SCP and SSH clients
-get_dropbear()
-{
-    cd "$CURR_DIR/build"
-
-    # Skip if already built
-    if [ -f "${DESTDIR}/usr/bin/ssh" ]; then
-        echo -e "${LIGHT_RED}Dropbear already built, skipping...${RESET}"
-        return
-    fi
-
-    # Download source
-    if [ -d dropbear ]; then
-        echo -e "${YELLOW}Dropbear source already present, resetting...${RESET}"
-        cd dropbear
-        git config --global --add safe.directory "$CURR_DIR/build/dropbear"
-        git reset --hard
-        git checkout "DROPBEAR_${DROPBEAR_VER}" || true
-    else
-        echo -e "${GREEN}Downloading Dropbear...${RESET}"
-        git clone --branch DROPBEAR_${DROPBEAR_VER} https://github.com/mkj/dropbear.git
-        cd dropbear
-    fi
-
-    # Compile and install
-    echo -e "${GREEN}Compiling Dropbear...${RESET}"
-    unset LIBS
-    ./configure --host=${HOST} --prefix=/usr --disable-zlib --disable-loginfunc --disable-syslog --disable-lastlog --disable-utmp --disable-utmpx --disable-wtmp --disable-wtmpx CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486 -static" LDFLAGS="-static"
-    make PROGRAMS="dbclient scp" -j$(nproc)
-    sudo make DESTDIR="${DESTDIR}" install PROGRAMS="dbclient scp"
-    sudo mv "${DESTDIR}/usr/bin/dbclient" "${DESTDIR}/usr/bin/ssh"
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/ssh"
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/scp"
-}
-
-# Download and compile Git
-get_git()
-{
-    cd "$CURR_DIR/build"
-
-    # Skip if already built
-    if [ -f "${DESTDIR}/usr/bin/git" ]; then
-        echo -e "${LIGHT_RED}Git already built, skipping...${RESET}"
-        return
-    fi
-
-    # Download source
-    if [ -d git ]; then
-        echo -e "${YELLOW}Git source already present, resetting...${RESET}"
-        cd git
-        git config --global --add safe.directory "$CURR_DIR/build/git"
-        git reset --hard
-        git checkout "v${GIT_VER}" || true
-    else
-        echo -e "${GREEN}Downloading Git...${RESET}"
-        git clone --branch "v${GIT_VER}" https://github.com/git/git.git
-        cd git
-    fi
-
-    # Compile and install
-    echo -e "${GREEN}Compiling Git...${RESET}"
-    make configure
-    ./configure --host=${HOST} --prefix=/usr CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486 -static -I${PREFIX}/include" LDFLAGS="-static -L${PREFIX}/lib"
-    sudo cp $CURR_DIR/configs/git.config.mak config.mak
-    make -j$(nproc)
-    sudo make DESTDIR="${DESTDIR}" install
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/git" 2>/dev/null || true
-
-    # Trim fat
-    cd "$DESTDIR/usr/libexec/git-core"
-    sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
-
-    cd "$DESTDIR/usr/bin"
-    sudo rm -f git-shell git-cvsserver scalar
-    sudo rm -rf "$DESTDIR/usr/share/gitweb" "$DESTDIR/usr/share/perl5" "$DESTDIR/usr/share/git-core/templates" "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
-    
-    sudo mkdir -p "$DESTDIR/usr/share/git-core/templates"
 }
 
 
@@ -946,14 +999,19 @@ build_file_system()
         copy_sysfile /etc/ssl/certs/ca-certificates.crt $CURR_DIR/build/root/etc/ssl/cert.pem
     fi
 
+    if ! $SKIP_EMACS; then
+        echo -e "${GREEN}Copying pre-defined Mg settings...${RESET}"
+        copy_sysfile $CURR_DIR/sysfiles/mg $CURR_DIR/build/root/etc/mg
+    fi
+
     if ! $SKIP_GIT; then
-        echo -e "${GREEN}Copying predefined Git configuration...${RESET}"
+        echo -e "${GREEN}Copying pre-defined Git settings...${RESET}"
         sudo mkdir -p $CURR_DIR/build/root/usr/etc
         copy_sysfile $CURR_DIR/sysfiles/gitconfig $CURR_DIR/build/root/usr/etc/gitconfig
     fi
 
     if ! $SKIP_NANO; then
-        echo -e "${GREEN}Copying predefined nano settings...${RESET}"
+        echo -e "${GREEN}Copying pre-defined nano settings...${RESET}"
         sudo mkdir -p $CURR_DIR/build/root/usr/etc
         copy_sysfile $CURR_DIR/sysfiles/nanorc $CURR_DIR/build/root/usr/etc/nanorc
     fi
@@ -961,6 +1019,9 @@ build_file_system()
     # Amend shorkhelp depending on what skip parameters were used
     if $SKIP_DROPBEAR; then
         sudo sed -i -e 's/\bscp, //g' -e 's/, scp\b//g' -e 's/\bscp\b//g' -e 's/\bssh, //g' -e 's/, ssh\b//g' -e 's/\bssh\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
+    fi
+    if $SKIP_EMACS; then
+        sudo sed -i -e 's/\bemacs, //g' -e 's/, emacs\b//g' -e 's/\bemacs\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
     fi
     if $SKIP_NANO; then
         sudo sed -i -e 's/\bnano, //g' -e 's/, nano\b//g' -e 's/\bnano\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
@@ -1144,6 +1205,9 @@ fi
 
 if ! $SKIP_DROPBEAR; then
     get_dropbear
+fi
+if ! $SKIP_EMACS; then
+    get_emacs
 fi
 if ! $SKIP_GIT; then
     get_git

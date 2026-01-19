@@ -26,13 +26,39 @@ shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres
 
 Bundled software
 ----------------
-ftp, git, nano, scp, ssh
+ftp, emacs, git, nano, scp, ssh
 
 Supported Git commands
 ----------------------
 add, blame, branch, checkout, cherry-pick, clean, clone, commit, config, diff,
 fetch, init, log, merge, mv, pull, push, rebase, reflog, remote, reset,
 restore, rm, show, stash, status, switch, tag
+EOF
+}
+
+print_emacs_hints()
+{
+    if [ ! -x /usr/bin/mg ]; then
+        echo "Emacs (Mg) is not installed."
+        exit 0
+    fi
+
+cat <<'EOF'
+Emacs (Mg) cheatsheet
+---------------------
+
+C = Ctrl                                    M = Alt
+
+Exit:                       C-x C-c         Open file/new buffer:       C-x C-f
+Save current buffer:        C-x C-s         Save all buffers:           C-x s
+
+Split window:               C-x 2           Enlarge window:             C-x ^
+Switch windows:             C-x o           Close current window:       C-x 0
+Close other windows:        C-x 1
+
+Go to line:                 C-x g           Undo:                       C-_
+Search (forwards):          C-s             Search (backwards):         C-r
+Find and replace:           M-%             Reformat (fit to line):     M-q
 EOF
 }
 
@@ -78,8 +104,8 @@ a list of possible colours.
 shorkfetch - Displays basic system and environment information. Similar to
 fastfetch, neofetch, etc. This utility takes no arguments.
 
-shorkhelp - Shows lists of supported commands and bundled utilities. This
-utility takes the "--commands", "--intro" and "--utiltiies" parameters.
+shorkhelp - Provides help with using @NAME@ via command lists, guides and
+cheatsheets. This utility requires the use of one of four parameters.
 
 shorkmap - Persistently changes the system's keymap. This utility takes one
 argument (a keymap name); running it without an argument shows a list of
@@ -104,6 +130,11 @@ for arg in "$@"; do
             print_commands
             return 1
             ;;
+        --emacs)
+            clear
+            print_emacs_hints
+            return 1
+            ;;
         --intro)
             clear
             print_intro
@@ -120,5 +151,5 @@ done
 
 
 printf "Displays help and reference information for using @NAME@ and its built-in tools.\n"
-echo "Usage: shorkhelp {--commands|--intro|--utilities}"
+echo "Usage: shorkhelp {--commands|--emacs|--intro|--utilities}"
 exit 1

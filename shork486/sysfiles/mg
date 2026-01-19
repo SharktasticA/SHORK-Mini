@@ -1,0 +1,11 @@
+######################################################
+## Pre-defined mg configuration enabling line and   ##
+## column numbers to show by default                ##
+######################################################
+## Kali (sharktastica.co.uk)                        ##
+######################################################
+
+
+
+line-number-mode
+column-number-mode
