@@ -28,17 +28,16 @@ It is recommended to move or copy the images out of this directory before extens
 
 ## Capabilities
 
-### Included BusyBox commands
+### BusyBox-provided commands
 
-* **Core & text:** awk, basename, cat, chmod, chown, clear, cp, cut, date, echo, find, grep, head, less, ls, man, mkdir, mv, printf, pwd, readlink, rm, rmdir, sed, tee, test, touch, tr, uname, vi, which
+awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date,
+dmesg, dirname, find, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig,
+kill, less, ln, ls, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc,
+paste, pkill, ping, printf, pwd, readlink, rm, rmdir, route, sed, seq, showkey,
+sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname,
+whoami, wget, which, xz, zip
 
-* **Networking:** ftpget, ftpput, hostname, ifconfig, ping, route, udhcpc, wget
-
-* **System & processes:** chroot, crontab, dmesg, free, halt, kill, mknod, mount, nohup, pkill, sleep, stat, stty, sync, top, umount
-
-* **Other:** beep, loadfont, loadkmap, showkey
-
-### Included software
+### Bundled software
 
 * ftp (FTP client, tnftp)
 * emacs (text editor, [Mg](https://github.com/troglobit/mg))
@@ -51,9 +50,10 @@ It is recommended to move or copy the images out of this directory before extens
 
 * **shorkcol** - Persistently changes the terminal's foreground (text) colour. Takes one argument (a colour name); running it without an argument shows a list of possible colours.
 * **shorkfetch** - Displays basic system and environment information. Similar to fastfetch, neofetch, etc. Takes no arguments.
-* **shorkhelp** - Provides help with using SHORK 486 via command lists, guides and cheatsheets. Requires one of four parameters:
+* **shorkhelp** - Provides help with using SHORK 486 via command lists, guides and cheatsheets. Requires one of five parameters:
     * `--commands`: Shows a command list including core commands and utilities, SHORK 486 utilities, bundled software, and supported Git commands.
     * `--emacs`: Shows an Emacs (Mg) cheatsheet.
+    * `--git`: Shows a list of supported Git commands.
     * `--intro`: Shows an introductory paragraph for SHORK 486 and a simple getting started guide.
     * `--utilities`: Shows a list of SHORK 486 utilities with a brief explanation of what they do.
 * **shorkmap** - Persistently changes the system's keyboard layout (keymap). Takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
@@ -66,7 +66,7 @@ It is recommended to move or copy the images out of this directory before extens
 2. An i486 musl cross-compiler is downloaded and extracted.
 3. ncurses source is downloaded and compiled. This is a prerequisite for other program compilations (e.g., nano).
 4. Linux kernel source is downloaded and compiled. `configs/linux.config` is copied during this process. The configuration is tailored to provide the minimum for 486SX, PATA/SATA and networking. The output is `build/bzImage`.
-4. BusyBox source is downloaded and compiled. `configs/busybox.config` is copied during this process. BusyBox provides common Unix-style utilities in one executable.
+4. BusyBox source is downloaded and compiled. `configs/busybox.config` is copied during this process. BusyBox provides common Unix-style utilities and our init system in one executable.
 5. BusyBox's compilation is used to assemble a root file system in `build/root`. All files in `sysfiles` are copied into their appropriate locations within it.
 6. Any other programs I desire are downloaded and compiled.
 7. A raw hard drive image (`.img`) is created in the `images` folder, containing the kernel image and the aforementioned file system.

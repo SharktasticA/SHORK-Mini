@@ -55,7 +55,6 @@ DONT_DEL_ROOT=false
 ENABLE_SATA=false
 IS_ARCH=false
 IS_DEBIAN=false
-KEYMAP=""
 MINIMAL=false
 NO_MENU=false
 SET_KEYMAP=""
@@ -93,7 +92,7 @@ while [ $# -gt 0 ]; do
             NO_MENU=true
             ;;
         --set-keymap=*)
-            KEYMAP="${1#*=}"
+            SET_KEYMAP="${1#*=}"
             ;;
         --skip-busybox)
             SKIP_BB=true
@@ -532,7 +531,8 @@ get_busybox()
     sed -i "s|^CONFIG_EXTRA_CFLAGS=.*|CONFIG_EXTRA_CFLAGS=\"-I${PREFIX}/include\"|" .config
     sed -i "s|^CONFIG_EXTRA_LDFLAGS=.*|CONFIG_EXTRA_LDFLAGS=\"-L${PREFIX}/lib\"|" .config
 
-    make ARCH=x86 -j$(nproc) && make ARCH=x86 install
+    make ARCH=x86 -j$(nproc)
+    make ARCH=x86 install
 
     echo -e "${GREEN}Move the result into a file system we will build...${RESET}"
     if [ -d "${DESTDIR}" ]; then
@@ -998,8 +998,6 @@ build_file_system()
             echo -e "${GREEN}Setting default keymap...${RESET}"
             echo "$SET_KEYMAP" > "$CURR_DIR/build/root/etc/keymap"
         fi
-    else
-        sudo sed -i -e 's/\bshorkmap, //g' -e 's/, shorkmap\b//g' -e 's/\bshorkmap\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
     fi
 
     if ! $SKIP_PCIIDS; then
@@ -1032,27 +1030,6 @@ build_file_system()
         echo -e "${GREEN}Copying pre-defined nano settings...${RESET}"
         sudo mkdir -p $CURR_DIR/build/root/usr/etc
         copy_sysfile $CURR_DIR/sysfiles/nanorc $CURR_DIR/build/root/usr/etc/nanorc
-    fi
-
-    # Amend shorkhelp depending on what skip parameters were used
-    if $SKIP_DROPBEAR; then
-        sudo sed -i -e 's/\bscp, //g' -e 's/, scp\b//g' -e 's/\bscp\b//g' -e 's/\bssh, //g' -e 's/, ssh\b//g' -e 's/\bssh\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
-    fi
-    if $SKIP_EMACS; then
-        sudo sed -i -e 's/\bemacs, //g' -e 's/, emacs\b//g' -e 's/\bemacs\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
-    fi
-    if $SKIP_NANO; then
-        sudo sed -i -e 's/\bnano, //g' -e 's/, nano\b//g' -e 's/\bnano\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
-    fi
-    if $SKIP_TNFTP; then
-        sudo sed -i -e 's/\bftp, //g' -e 's/, ftp\b//g' -e 's/\bftp\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
-    fi
-    if $SKIP_GIT; then
-        sudo sed -i -e 's/\bgit, //g' -e 's/, git\b//g' -e 's/\bgit\b//g' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
-        sudo sed -i '/^Supported Git commands[[:space:]]*$/,+4d' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
-    fi
-    if $SKIP_NANO && $SKIP_DROPBEAR && $SKIP_TNFTP && $SKIP_GIT; then
-        sudo sed -i '/^Bundled software[[:space:]]*$/,+2d' "${CURR_DIR}/build/root/usr/bin/shorkhelp"
     fi
 
     cd "${DESTDIR}"

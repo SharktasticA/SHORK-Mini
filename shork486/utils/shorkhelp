@@ -9,40 +9,87 @@
 
 
 
+DROPBEAR_PRESENT=true
+EMACS_PRESENT=true
+GIT_PRESENT=true
+NANO_PRESENT=true
+SHORKMAP_PRESENT=true
+TNFTP_PRESENT=true
+
+if [ ! -x /usr/bin/scp ]; then
+    DROPBEAR_PRESENT=false
+fi
+if [ ! -x /usr/bin/ssh ]; then
+    DROPBEAR_PRESENT=false
+fi
+if [ ! -x /usr/bin/mg ]; then
+    EMACS_PRESENT=false
+fi
+if [ ! -x /usr/bin/git ]; then
+    GIT_PRESENT=false
+fi
+if [ ! -x /usr/bin/nano ]; then
+    NANO_PRESENT=false
+fi
+if [ ! -x /usr/bin/shorkmap ]; then
+    SHORKMAP_PRESENT=false
+fi
+if [ ! -x /usr/bin/ftp ]; then
+    TNFTP_PRESENT=false
+fi
+
+
+
 print_commands()
 {
-cat <<'EOF'
-Core commands & utilities
--------------------------
-awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date,
-dmesg, echo, find, free, ftpget, ftpput, grep, halt, head, hostname, ifconfig,
-kill, less, loadfont, loadkmap, ls, man, mkdir, mknod, mount, mv, nohup, ping,
-pkill, printf, pwd, readlink, rm, rmdir, route, sed, showkey, sleep, stat, stty,
-sync, tee, test, top, touch, tr, udhcpc, umount, uname, vi, wget, which
+    OUTPUT="General
+-------
+basename, cat, chmod, chown, chroot, cp, dirname, find, gzip, ln, ls, mkdir,
+mknod, mount, mv, pwd, readlink, rm, rmdir, stat, sync, tar, touch, umount,
+which, xz, zip, loadkmap, man, showkey, awk, cut, grep, head, less, paste,
+printf, sed, seq, tee, test, tr
+
+Editors & development tools
+---------------------------
+ed, emacs, git, nano, vi
+
+System & processes
+------------------
+beep, clear, crontab, date, dmesg, free, halt, hostname, kill, nice, nohup,
+nproc, pkill, sleep, stty, top, uname, whoami
+
+Networking & remote access
+--------------------------
+ftp, ftpget, ftpput, ifconfig, ping, route, scp, ssh, udhcpc, wget
 
 @NAME@ utilities
 -------------------
-shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres
+shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres"
 
-Bundled software
-----------------
-ftp, emacs, git, nano, scp, ssh
+    if ! $DROPBEAR_PRESENT; then
+       OUTPUT=$(echo "$OUTPUT" |  sed -e "s|, scp, ssh||g")
+    fi
+    if ! $EMACS_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | sed -e "s|, emacs||g")
+    fi
+    if ! $GIT_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | sed -e "s|, git||g")
+    fi
+    if ! $NANO_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | sed -e "s|, nano||g")
+    fi
+    if ! $SHORKMAP_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | sed -e "s|, shorkmap||g")
+    fi
+    if ! $TNFTP_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | sed -e "s|ftp, ||g")
+    fi
 
-Supported Git commands
-----------------------
-add, blame, branch, checkout, cherry-pick, clean, clone, commit, config, diff,
-fetch, init, log, merge, mv, pull, push, rebase, reflog, remote, reset,
-restore, rm, show, stash, status, switch, tag
-EOF
+    echo "$OUTPUT";
 }
 
 print_emacs_hints()
 {
-    if [ ! -x /usr/bin/mg ]; then
-        echo "Emacs (Mg) is not installed."
-        exit 0
-    fi
-
 cat <<'EOF'
 Emacs (Mg) cheatsheet
 ---------------------
@@ -59,6 +106,18 @@ Close other windows:        C-x 1
 Go to line:                 C-x g           Undo:                       C-_
 Search (forwards):          C-s             Search (backwards):         C-r
 Find and replace:           M-%             Reformat (fit to line):     M-q
+EOF
+}
+
+print_git_commands()
+{
+cat <<'EOF'
+Supported Git commands
+----------------------
+
+add, blame, branch, checkout, cherry-pick, clean, clone, commit, config, diff,
+fetch, init, log, merge, mv, pull, push, rebase, reflog, remote, reset,
+restore, rm, show, stash, status, switch, tag
 EOF
 }
 
@@ -93,8 +152,7 @@ EOF
 
 print_utilities()
 {
-cat <<'EOF'
-@NAME@ utilities
+    OUTPUT="@NAME@ utilities
 -------------------
 
 shorkcol - Persistently changes the terminal's foreground (text) colour. This
@@ -105,7 +163,7 @@ shorkfetch - Displays basic system and environment information. Similar to
 fastfetch, neofetch, etc. This utility takes no arguments.
 
 shorkhelp - Provides help with using @NAME@ via command lists, guides and
-cheatsheets. This utility requires the use of one of four parameters.
+cheatsheets. This utility requires the use of one of five parameters.
 
 shorkmap - Persistently changes the system's keymap. This utility takes one
 argument (a keymap name); running it without an argument shows a list of
@@ -117,8 +175,13 @@ utility takes no arguments.
 
 shorkres - Persistently changes the system's display resolution (provided the
 hardware is compatible). This utility takes one argument (a resolution name);
-running it without an argument shows a list of possible resolution names.
-EOF
+running it without an argument shows a list of possible resolution names."
+
+    if ! $SHORKMAP_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | awk '/^shorkmap -/ {f=1; next} f && /^$/ {f=0; next} !f')
+    fi
+
+    echo "$OUTPUT";
 }
 
 
@@ -131,9 +194,18 @@ for arg in "$@"; do
             return 1
             ;;
         --emacs)
-            clear
-            print_emacs_hints
-            return 1
+            if $EMACS_PRESENT; then
+                clear
+                print_emacs_hints
+                return 1
+            fi
+            ;;
+        --git)
+            if $GIT_PRESENT; then
+                clear
+                print_git_commands
+                return 1
+            fi
             ;;
         --intro)
             clear
@@ -148,8 +220,15 @@ for arg in "$@"; do
     esac
 done
 
+CMDS="--commands|--emacs|--git|--intro|--utilities"
 
+if ! $EMACS_PRESENT; then
+    CMDS=$(echo "$CMDS" | sed 's/|--emacs//g; s/--emacs|//g; s/--emacs//g')
+fi
+if ! $GIT_PRESENT; then
+    CMDS=$(echo "$CMDS" | sed 's/|--git//g; s/--git|//g; s/--git//g')
+fi
 
 printf "Displays help and reference information for using @NAME@ and its built-in tools.\n"
-echo "Usage: shorkhelp {--commands|--emacs|--intro|--utilities}"
+echo "Usage: shorkhelp {$CMDS}"
 exit 1
