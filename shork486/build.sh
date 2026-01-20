@@ -504,22 +504,34 @@ get_busybox()
 {
     cd "$CURR_DIR/build"
 
-    echo -e "${GREEN}Downloading BusyBox...${RESET}"
-    [ -f $BUSYBOX_VER.tar.gz ] || wget https://github.com/mirror/busybox/archive/refs/tags/$BUSYBOX_VER.tar.gz
-    [ -d busybox-$BUSYBOX_VER ] || tar xzvf $BUSYBOX_VER.tar.gz
-    cd busybox-$BUSYBOX_VER/
+    # Download source
+    if [ -d busybox ]; then
+        echo -e "${YELLOW}BusyBox source already present, resetting...${RESET}"
+        cd busybox
+        git config --global --add safe.directory $CURR_DIR/build/busybox
+        git reset --hard
+        git checkout $BUSYBOX_VER || true
+    else
+        echo -e "${GREEN}Downloading BusyBox...${RESET}"
+        git clone --branch $BUSYBOX_VER https://github.com/mirror/busybox.git
+        cd busybox
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling BusyBox...${RESET}"
     make ARCH=x86 allnoconfig
     sed -i 's/main() {}/int main() {}/' scripts/kconfig/lxdialog/check-lxdialog.sh
-    cp $CURR_DIR/configs/busybox.config .config
 
     # Patch BusyBox to suppress banner and help message
     sed -i 's/^#if !ENABLE_FEATURE_SH_EXTRA_QUIET/#if 0 \/* disabled ash banner *\//' shell/ash.c
 
-    echo -e "${GREEN}Compiling BusyBox...${RESET}"
+    cp $CURR_DIR/configs/busybox.config .config
+    # Ensure BusyBox behaves with our toolchain
     sed -i "s|^CONFIG_CROSS_COMPILER_PREFIX=.*|CONFIG_CROSS_COMPILER_PREFIX=\"${PREFIX}/bin/i486-linux-musl-\"|" .config
     sed -i "s|^CONFIG_SYSROOT=.*|CONFIG_SYSROOT=\"${CURR_DIR}/build/i486-linux-musl-cross\"|" .config
     sed -i "s|^CONFIG_EXTRA_CFLAGS=.*|CONFIG_EXTRA_CFLAGS=\"-I${PREFIX}/include\"|" .config
     sed -i "s|^CONFIG_EXTRA_LDFLAGS=.*|CONFIG_EXTRA_LDFLAGS=\"-L${PREFIX}/lib\"|" .config
+
     make ARCH=x86 -j$(nproc) && make ARCH=x86 install
 
     echo -e "${GREEN}Move the result into a file system we will build...${RESET}"
@@ -554,7 +566,7 @@ configure_kernel()
     if $ENABLE_SATA; then
         echo -e "${GREEN}Enabling SATA support...${RESET}"
         sed -i 's/CONFIG_PAHOLE_VERSION=0/CONFIG_PAHOLE_VERSION=130/' .config
-        sed -i 's/CONFIG_SATA_AHCI is not set/CONFIG_SATA_AHCI=y\nCONFIG_SATA_MOBILE_LPM_POLICY=3/' .config
+        sed -i 's/# CONFIG_SATA_AHCI is not set/CONFIG_SATA_AHCI=y\nCONFIG_SATA_MOBILE_LPM_POLICY=3/' .config
     fi
 }
 
@@ -704,6 +716,7 @@ get_emacs()
     if [ -d mg ]; then
         echo -e "${YELLOW}Mg source already present, resetting...${RESET}"
         cd mg
+        git config --global --add safe.directory $CURR_DIR/build/mg
         git reset --hard
         git checkout "v${MG_VER}" || true
     else
@@ -724,10 +737,6 @@ get_emacs()
     ./configure --host=${HOST} --prefix=/usr CC="${CC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486 -static"
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
-
-    # Remove unneeded docs/tutorials
-    sudo rm -r "${DESTDIR}/usr/share/mg"
-    sudo rm -r "${DESTDIR}/usr/share/doc/mg"
 
     # Allow running "emacs" to run mg
     sudo ln -sf mg "${DESTDIR}/usr/bin/emacs"
@@ -765,16 +774,6 @@ get_git()
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
     sudo "${STRIP}" "${DESTDIR}/usr/bin/git" 2>/dev/null || true
-
-    # Trim fat
-    cd "$DESTDIR/usr/libexec/git-core"
-    sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
-
-    cd "$DESTDIR/usr/bin"
-    sudo rm -f git-shell git-cvsserver scalar
-    sudo rm -rf "$DESTDIR/usr/share/gitweb" "$DESTDIR/usr/share/perl5" "$DESTDIR/usr/share/git-core/templates" "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
-    
-    sudo mkdir -p "$DESTDIR/usr/share/git-core/templates"
 }
 
 # Download and compile nano
@@ -823,10 +822,7 @@ get_nano()
     grep -rl "TINFO_LIBS" . | xargs -r sed -i 's/TINFO_LIBS.*/TINFO_LIBS = /' 2>/dev/null || true
 
     make TINFO_LIBS="" -j$(nproc)
-    make DESTDIR="${DESTDIR}" install
-
-    # Remove unneeded docs/tutorials
-    sudo rm -r "${DESTDIR}/usr/share/doc/nano"
+    sudo make DESTDIR="${DESTDIR}" install
 }
 
 # Download and compile tnftp
@@ -865,8 +861,30 @@ get_tnftp()
     chmod +x "${CC_STATIC}"
     ./configure --host=${HOST} --prefix=/usr --disable-editcomplete --disable-shared --enable-static CC="${CC_STATIC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" CFLAGS="-Os -march=i486" LDFLAGS=""
     make -j$(nproc)
-    make DESTDIR="${DESTDIR}" install
+    sudo make DESTDIR="${DESTDIR}" install
     ln -sf tnftp "${DESTDIR}/usr/bin/ftp"
+}
+
+# Removes anything I've seemed unnecessary in the name of space saving 
+trim_fat()
+{
+    echo -e "${GREEN}Trimming any possible fat...${RESET}"
+
+    sudo rm -rf "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
+
+    if ! $SKIP_EMACS; then
+        sudo rm -rf "${DESTDIR}/usr/share/mg"
+    fi
+    
+    if ! $SKIP_GIT; then
+        cd "$DESTDIR/usr/libexec/git-core"
+        sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
+        cd "$DESTDIR/usr/bin"
+        sudo rm -f git-shell git-cvsserver scalar
+        sudo rm -rf "$DESTDIR/usr/share/gitweb" "$DESTDIR/usr/share/perl5" "$DESTDIR/usr/share/git-core/templates"
+        # Create empty directory otherwise Git will complain
+        sudo mkdir -p "$DESTDIR/usr/share/git-core/templates"
+    fi
 }
 
 
@@ -1218,6 +1236,8 @@ fi
 if ! $SKIP_TNFTP; then
     get_tnftp
 fi
+
+trim_fat
 
 find_mbr_bin
 build_file_system
