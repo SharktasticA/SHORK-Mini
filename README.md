@@ -8,14 +8,9 @@ A complete SHORK 486 system aims to work with at least 16MiB system memory and t
 
 ## Capabilities
 
-### BusyBox-provided commands
+### Core commands (BusyBox, util-linux)
 
-awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date,
-dmesg, dirname, find, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig,
-kill, less, ln, ls, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc,
-paste, pkill, ping, printf, pwd, readlink, rm, rmdir, route, sed, seq, showkey,
-sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname,
-whoami, wget, which, xz, zip
+awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, dmesg, dirname, find, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, whoami, wget, which, xz, zip
 
 ### Bundled software
 

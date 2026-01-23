@@ -55,8 +55,8 @@ ed, emacs, git, nano, vi
 
 System & processes
 ------------------
-beep, clear, crontab, date, dmesg, free, halt, hostname, kill, nice, nohup,
-nproc, pkill, sleep, stty, top, uname, whoami
+beep, clear, crontab, date, dmesg, free, halt, hostname, kill, lsblk, lspci
+nice, nohup, nproc, pkill, sleep, stty, top, uname, whoami
 
 Networking & remote access
 --------------------------

@@ -223,7 +223,7 @@ MBR_BIN=""
 PREFIX="${CURR_DIR}/build/i486-linux-musl-cross"
 AR="${PREFIX}/bin/i486-linux-musl-ar"
 CC="${PREFIX}/bin/i486-linux-musl-gcc"
-CC_STATIC="${CURR_DIR}/configs/i486-linux-musl-gcc-static"
+CC_STATIC="${CURR_DIR}/i486-linux-musl-gcc-static"
 DESTDIR="${CURR_DIR}/build/root"
 HOST=i486-linux-musl
 RANLIB="${PREFIX}/bin/i486-linux-musl-ranlib"
@@ -285,7 +285,16 @@ clean_stale_mounts()
 install_arch_prerequisites()
 {
     echo -e "${GREEN}Installing prerequisite packages for an Arch-based system...${RESET}"
-    sudo pacman -Syu --noconfirm --needed autoconf bc base-devel bison bzip2 ca-certificates cpio dosfstools e2fsprogs flex git grub libtool make multipath-tools ncurses pciutils python qemu-img syslinux systemd texinfo util-linux wget xz || true
+
+    PACKAGES="autoconf bc base-devel bison bzip2 ca-certificates cpio dosfstools e2fsprogs flex gettext git libtool make multipath-tools ncurses pciutils python qemu-img systemd texinfo util-linux wget xz"
+
+    if $USE_GRUB; then
+        PACKAGES="$PACKAGES grub"
+    else
+        PACKAGES="$PACKAGES syslinux"
+    fi
+
+    sudo pacman -Syu --noconfirm --needed $PACKAGES || true
 }
 
 install_debian_prerequisites()
@@ -294,7 +303,7 @@ install_debian_prerequisites()
     sudo dpkg --add-architecture i386
     sudo apt-get update
 
-    PACKAGES="bc bison bzip2 e2fsprogs fdisk flex git kpartx make qemu-utils syslinux wget xz-utils"
+    PACKAGES="autopoint bc bison bzip2 e2fsprogs fdisk flex git kpartx libtool make qemu-utils syslinux wget xz-utils"
 
     if ! $SKIP_GIT; then
         PACKAGES="$PACKAGES autoconf"
@@ -515,7 +524,7 @@ get_tic()
 
 
 ######################################################
-## BusyBox building                                 ##
+## BusyBox & core utilities building                ##
 ######################################################
 
 # Download and compile BusyBox
@@ -559,6 +568,37 @@ get_busybox()
         sudo rm -r "${DESTDIR}"
     fi
     mv _install "${DESTDIR}"
+}
+
+# Download and compile some extra tools from util-linux (presently, just lsblk)
+get_util_linux()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "${DESTDIR}/usr/bin/lsblk" ]; then
+        echo -e "${LIGHT_RED}lsblk from util-linux already built, skipping...${RESET}"
+        return
+    fi
+
+    # Download source
+    if [ -d util-linux ]; then
+        echo -e "${YELLOW}util-linux source already present, resetting...${RESET}"
+        cd util-linux
+        git reset --hard
+    else
+        echo -e "${GREEN}Downloading util-linux...${RESET}"
+        git clone https://github.com/util-linux/util-linux.git
+        cd util-linux
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling util-linux for lsblk...${RESET}"
+    ./autogen.sh
+    ./configure --host=${HOST} --prefix=/usr --disable-all-programs --enable-lsblk --enable-libblkid --enable-libmount --enable-libsmartcols --disable-shared --enable-static --without-python --without-tinfo --without-ncurses CC="${CC_STATIC}" CFLAGS="-Os -march=i486" LDFLAGS="-static"
+    make lsblk -j$(nproc)
+    sudo install -D -m 755 lsblk "${DESTDIR}/usr/bin/lsblk"
+    sudo "${STRIP}" "${DESTDIR}/usr/bin/lsblk"
 }
 
 
@@ -892,7 +932,6 @@ get_tnftp()
     # Compile and install
     echo -e "${GREEN}Downloading and compiling tnftp...${RESET}"
     unset LIBS
-    chmod +x "${CC_STATIC}"
     ./configure --host=${HOST} --prefix=/usr --disable-editcomplete --disable-shared --enable-static CC="${CC_STATIC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" CFLAGS="-Os -march=i486" LDFLAGS=""
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
@@ -982,12 +1021,12 @@ build_file_system()
     chmod +x $CURR_DIR/sysfiles/default.script
     chmod +x $CURR_DIR/sysfiles/poweroff
     chmod +x $CURR_DIR/sysfiles/shutdown
-    chmod +x $CURR_DIR/utils/shorkoff
-    chmod +x $CURR_DIR/utils/shorkfetch
-    chmod +x $CURR_DIR/utils/shorkcol
-    chmod +x $CURR_DIR/utils/shorkhelp
-    chmod +x $CURR_DIR/utils/shorkmap
-    chmod +x $CURR_DIR/utils/shorkres
+    chmod +x $CURR_DIR/shorkutils/shorkoff
+    chmod +x $CURR_DIR/shorkutils/shorkfetch
+    chmod +x $CURR_DIR/shorkutils/shorkcol
+    chmod +x $CURR_DIR/shorkutils/shorkhelp
+    chmod +x $CURR_DIR/shorkutils/shorkmap
+    chmod +x $CURR_DIR/shorkutils/shorkres
 
     echo -e "${GREEN}Copy pre-defined files...${RESET}"
     copy_sysfile $CURR_DIR/sysfiles/welcome-80 $CURR_DIR/build/root/banners/welcome-80
@@ -1008,11 +1047,11 @@ build_file_system()
     copy_sysfile $CURR_DIR/sysfiles/passwd $CURR_DIR/build/root/etc/passwd
     copy_sysfile $CURR_DIR/sysfiles/poweroff $CURR_DIR/build/root/sbin/poweroff
     copy_sysfile $CURR_DIR/sysfiles/shutdown $CURR_DIR/build/root/sbin/shutdown
-    copy_sysfile $CURR_DIR/utils/shorkoff $CURR_DIR/build/root/sbin/shorkoff
-    copy_sysfile $CURR_DIR/utils/shorkfetch $CURR_DIR/build/root/usr/bin/shorkfetch
-    copy_sysfile $CURR_DIR/utils/shorkcol $CURR_DIR/build/root/usr/libexec/shorkcol
-    copy_sysfile $CURR_DIR/utils/shorkhelp $CURR_DIR/build/root/usr/bin/shorkhelp
-    copy_sysfile $CURR_DIR/utils/shorkres $CURR_DIR/build/root/usr/bin/shorkres
+    copy_sysfile $CURR_DIR/shorkutils/shorkoff $CURR_DIR/build/root/sbin/shorkoff
+    copy_sysfile $CURR_DIR/shorkutils/shorkfetch $CURR_DIR/build/root/usr/bin/shorkfetch
+    copy_sysfile $CURR_DIR/shorkutils/shorkcol $CURR_DIR/build/root/usr/libexec/shorkcol
+    copy_sysfile $CURR_DIR/shorkutils/shorkhelp $CURR_DIR/build/root/usr/bin/shorkhelp
+    copy_sysfile $CURR_DIR/shorkutils/shorkres $CURR_DIR/build/root/usr/bin/shorkres
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     sudo mkdir -p $CURR_DIR/build/root/usr/share/terminfo/src/
@@ -1026,7 +1065,7 @@ build_file_system()
         sudo chmod 644 "$CURR_DIR/build/root/usr/share/keymaps/"*.kmap.bin
 
         echo -e "${GREEN}Installing shorkmap utility...${RESET}"
-        copy_sysfile $CURR_DIR/utils/shorkmap $CURR_DIR/build/root/usr/bin/shorkmap
+        copy_sysfile $CURR_DIR/shorkutils/shorkmap $CURR_DIR/build/root/usr/bin/shorkmap
 
         if [ -n "$SET_KEYMAP" ]; then
             echo -e "${GREEN}Setting default keymap...${RESET}"
@@ -1255,6 +1294,8 @@ get_i486_musl_cc
 if ! $SKIP_BB; then
     get_busybox
 fi
+get_util_linux
+
 if ! $SKIP_KRN; then
     get_kernel
 fi

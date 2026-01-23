@@ -1,5 +1,5 @@
 #!/bin/sh
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REAL_GCC="$SCRIPT_DIR/../build/i486-linux-musl-cross/bin/i486-linux-musl-gcc"
+REAL_GCC="$SCRIPT_DIR/build/i486-linux-musl-cross/bin/i486-linux-musl-gcc"
 exec "$REAL_GCC" -fno-pie -no-pie -static "$@"
