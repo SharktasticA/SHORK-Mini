@@ -582,6 +582,7 @@ get_util_linux()
     if [ -d util-linux ]; then
         echo -e "${YELLOW}util-linux source already present, resetting...${RESET}"
         cd util-linux
+        git config --global --add safe.directory /var/shork486/build/util-linux
         git reset --hard
     else
         echo -e "${GREEN}Downloading util-linux...${RESET}"
