@@ -484,12 +484,9 @@ get_curl()
     if [ -d $CURL ]; then
         echo -e "${YELLOW}curl's source is already present, cleaning up before proceeding...${RESET}"
         sudo rm -rf $CURL
-        tar xf $CURL_ARC
-        cd $CURL
-    else
-        tar xf $CURL_ARC
-        cd $CURL
     fi
+    tar xf $CURL_ARC
+    cd $CURL
 
     # Compile and install
     echo -e "${GREEN}Compiling curl...${RESET}"
@@ -873,12 +870,10 @@ get_nano()
     # Extract source
     if [ -d $NANO ]; then
         echo -e "${YELLOW}nano's source is already present, cleaning up before proceeding...${RESET}"
-        cd $NANO
-        make clean
-    else
-        tar xf $NANO_ARC
-        cd $NANO
+        sudo rm -rf $NANO
     fi
+    tar xf $NANO_ARC
+    cd $NANO
 
     # Compile program
     echo -e "${GREEN}Compiling nano...${RESET}"
@@ -922,12 +917,10 @@ get_tnftp()
     # Extract source
     if [ -d $TNFTP ]; then
         echo -e "${YELLOW}tnftp's source is already present, cleaning up before proceeding...${RESET}"
-        cd $TNFTP
-        make clean
-    else
-        tar xzf $TNFTP_ARC
-        cd $TNFTP
+        sudo rm -rf $TNFTP
     fi
+    tar xzf $TNFTP_ARC
+    cd $TNFTP
 
     # Compile and install
     echo -e "${GREEN}Downloading and compiling tnftp...${RESET}"
