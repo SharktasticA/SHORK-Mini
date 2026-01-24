@@ -94,7 +94,7 @@ case "$1" in
     yellow_bright)  COL="0;1;33" ;;
     *)
         echo "Invalid colour: $1"
-        echo "Available colours: $COLS"
+        echo "Available colours: $COLS" | fold -s -w "$WIDTH"
         exit 1
         ;;
 esac

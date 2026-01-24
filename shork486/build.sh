@@ -657,7 +657,7 @@ configure_kernel()
     echo -e "${GREEN}Copying base SHORK 486 Linux kernel .config file...${RESET}"
     cp $CURR_DIR/configs/linux.config .config
 
-    FRAGS=""
+    FRAGS="$CURR_DIR/configs/linux.config.fb.frag "
 
     if $ENABLE_HIGHMEM; then
         echo -e "${GREEN}Enabling kernel high memory support...${RESET}"
