@@ -50,7 +50,7 @@ print_commands()
 {
     OUTPUT="General
 -------
-awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, which, xz
+awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rev, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, whereis, which, xz
 
 Editors & development tools
 ---------------------------
@@ -58,7 +58,7 @@ ed, emacs, git, nano, vi
 
 System & processes
 ------------------
-beep, clear, crontab, date, dmesg, free, halt, hostname, kill, lsblk, lspci, lsusb, nice, nohup, nproc, pkill, sleep, stty, top, uname, whoami
+beep, blkid, clear, crontab, date, dmesg, free, halt, hostname, kill, losetup, lsblk, lspci, lsusb, nice, nohup, nproc, pkill, sleep, stty, top, uname, whoami
 
 Networking & remote access
 --------------------------

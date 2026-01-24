@@ -598,14 +598,14 @@ get_busybox()
     mv _install "${DESTDIR}"
 }
 
-# Download and compile some extra tools from util-linux (presently, just lsblk)
+# Download and compile some extra tools from util-linux (lsblk and whereis)
 get_util_linux()
 {
     cd "$CURR_DIR/build"
 
     # Skip if already built
-    if [ -f "${DESTDIR}/usr/bin/lsblk" ]; then
-        echo -e "${LIGHT_RED}lsblk from util-linux already built, skipping...${RESET}"
+    if [ -f "${DESTDIR}/usr/bin/lsblk" ] && [ -f "${DESTDIR}/usr/bin/whereis"]; then
+        echo -e "${LIGHT_RED}lsblk and whereis from util-linux already built, skipping...${RESET}"
         return
     fi
 
@@ -622,12 +622,17 @@ get_util_linux()
     fi
 
     # Compile and install
-    echo -e "${GREEN}Compiling util-linux for lsblk...${RESET}"
+    echo -e "${GREEN}Compiling util-linux for lsblk and whereis...${RESET}"
     ./autogen.sh
-    ./configure --host=${HOST} --prefix=/usr --disable-all-programs --enable-lsblk --enable-libblkid --enable-libmount --enable-libsmartcols --disable-shared --enable-static --without-python --without-tinfo --without-ncurses CC="${CC_STATIC}" CFLAGS="-Os -march=i486" LDFLAGS="-static"
-    make lsblk -j$(nproc)
-    sudo install -D -m 755 lsblk "${DESTDIR}/usr/bin/lsblk"
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/lsblk"
+    ./configure --host=${HOST} --prefix=/usr --disable-all-programs --enable-lsblk --enable-whereis --enable-libblkid --enable-libmount --enable-libsmartcols --disable-shared --enable-static --without-python --without-tinfo --without-ncurses CC="${CC_STATIC}" CFLAGS="-Os -march=i486" LDFLAGS="-static"
+   
+    make lsblk whereis -j$(nproc)
+    sudo install -D -m 755 whereis "${DESTDIR}/usr/bin/whereis"
+
+    for bin in lsblk whereis; do
+        sudo install -D -m 755 "${bin}" "${DESTDIR}/usr/bin/${bin}"
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/${bin}"
+    done
 }
 
 

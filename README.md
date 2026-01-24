@@ -8,9 +8,9 @@ A default SHORK 486 system aims to work with at least 16MiB system memory and ta
 
 ## Capabilities
 
-### Core commands (BusyBox, util-linux)
+### Core commands (BusyBox & util-linux)
 
-awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, dmesg, dirname, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, which, xz
+awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, dmesg, dirname, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, losetup, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rev, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, whereis, which, xz
 
 ### Bundled software
 
