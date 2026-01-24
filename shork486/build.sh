@@ -58,6 +58,7 @@ ENABLE_SMP=false
 ENABLE_USB=false
 IS_ARCH=false
 IS_DEBIAN=false
+MAXIMAL=false
 MINIMAL=false
 NO_MENU=false
 SET_KEYMAP=""
@@ -97,6 +98,9 @@ while [ $# -gt 0 ]; do
         --is-debian)
             IS_ARCH=false
             IS_DEBIAN=true
+            ;;
+        --maximal)
+            MAXIMAL=true
             ;;
         --minimal)
             MINIMAL=true
@@ -146,8 +150,26 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# Overrides to ensure "minimal" parameter always takes precedence
-if $MINIMAL; then
+# Overrides to ensure "maximal" parameter always takes precedence
+if $MAXIMAL; then
+    echo -e "${GREEN}Configuring for a maximal build...${RESET}"
+    ENABLE_HIGHMEM=true
+    ENABLE_SATA=true
+    ENABLE_SMP=true
+    ENABLE_USB=true
+    NO_MENU=false
+    SKIP_BB=false
+    SKIP_DROPBEAR=false
+    SKIP_EMACS=false
+    SKIP_GIT=false
+    SKIP_KEYMAPS=false
+    SKIP_KRN=false
+    SKIP_NANO=false
+    SKIP_PCIIDS=false
+    SKIP_TNFTP=false
+# Overrides to ensure "minimal" parameter always takes precedence (if not maximal)
+elif $MINIMAL; then
+    echo -e "${GREEN}Configuring for a minimal build...${RESET}"
     ENABLE_HIGHMEM=false
     ENABLE_SATA=false
     ENABLE_SMP=false

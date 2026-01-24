@@ -69,6 +69,8 @@ SHORK 486 can be used on newer hardware if you so desire, but there are some con
 
 * A default SHORK 486 system only supports IDE hard drives. An "enable SATA" build parameter is available to address this, though the recommended system memory amount is raised to **24MiB**.
 
+* The "maximal" build parameter is available as a shortcut to enable all three parameters mentioned above (as well as all possible software).
+
 
 
 ## Usage
@@ -129,8 +131,14 @@ It is recommended to move or copy the images out of this directory before extens
 
 * **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a ~10MiB or less disk drive image and a potentially less memory-hungry SHORK 486 system.
     * This is like using the "no boot menu", "skip Dropbear", "skip Emacs", "skip Git", "skip nano", and "skip tnftp" parameters together.
-    * The "enable high memory", "enable SATA", "enable SMP", "enable USB & HID", "skip kernel" "skip BusyBox", and "use GRUB" parameters will be overridden if also used.
+    * The "enable high memory", "enable SATA", "enable SMP", "enable USB & HID", "skip kernel", "skip BusyBox", and "use GRUB" parameters will be overridden if also used.
     * The minimum system memory requirement is lowered to 12MiB.
+
+* **Maximal** (`--maximal`): can be used to force building and including all bundled programs and features.
+    * This is like using the "enable high memory", "enable SATA", "enable SMP" and "enable USB & HID" parameters together.
+    * All skip bundled program/feature, "minimal", "skip kernel" and "skip BusyBox" parameters will be overridden if also used.
+    * The "use GRUB" parameter is the one major feature control that is still optional.
+    * The minimum system memory requirement is raised to 24MiB.
 
 * **Set keymap** (`--set-keymap`): can be used to specify SHORK 486's default keyboard layout (keymap). 
     * Example usage: `--keymap=de` to specify a German QWERTZ keyboard layout. Possible keymaps can be found in the `sysfiles/keymaps` directory (just exclude the `.kmap.bin` extension).
