@@ -10,7 +10,7 @@ A default SHORK 486 system aims to work with at least 16MiB system memory and ta
 
 ### Core commands (BusyBox, util-linux)
 
-awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, dmesg, dirname, find, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, whoami, wget, which, xz, zip
+awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, dmesg, dirname, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, which, xz
 
 ### Bundled software
 
@@ -30,7 +30,7 @@ awk, basename, beep, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, d
     * `--emacs`: Shows an Emacs (Mg) cheatsheet.
     * `--git`: Shows a list of supported Git commands.
     * `--intro`: Shows an introductory paragraph for SHORK 486 and a simple getting started guide.
-    * `--utilities`: Shows a list of SHORK 486 utilities with a brief explanation of what they do.
+    * `--shorkutils`: Shows a list of SHORK 486 utilities with a brief explanation of what they do.
 * **shorkmap** - Persistently changes the system's keyboard layout (keymap). Takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
 * **shorkoff** - Brings the system to a halt and syncs the write cache, allowing the computer to be safely turned off. Similar to `poweroff` or `shutdown -h`. Takes no arguments.
 * **shorkres** - Persistently changes the system's display resolution (provided the hardware is compatible). Takes one argument (a resolution name); running it without an argument shows a list of possible resolution names.

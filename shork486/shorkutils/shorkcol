@@ -11,7 +11,9 @@
 
 set -e
 
-COLS="blue|blue_bright|cyan|cyan_bright|green|green_bright|grey|magenta|magenta_bright|red|red_bright|white|white_bright|yellow|yellow_bright"
+COLS="blue | blue_bright | cyan | cyan_bright | green | green_bright | grey | magenta | magenta_bright | red | red_bright | white | white_bright | yellow | yellow_bright"
+
+WIDTH=$(stty size 2>/dev/null | cut -d' ' -f2)
 
 get_current_colour()
 {
@@ -68,8 +70,8 @@ get_current_colour()
 }
 
 if [ $# -ne 1 ]; then
-    printf "Changes the terminal's foreground (font) colour.\n"
-    echo "Usage: shorkcol {$COLS}"
+    printf "Changes the terminal's foreground (font) colour.\n\n" | fold -s -w "$WIDTH"
+    echo "Usage: shorkcol {$COLS}" | fold -s -w "$WIDTH"
     echo "Current colour: $(get_current_colour)"
     exit 1
 fi

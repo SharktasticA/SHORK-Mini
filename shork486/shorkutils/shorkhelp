@@ -42,16 +42,15 @@ if [ ! -x /usr/bin/ftp ]; then
     TNFTP_PRESENT=false
 fi
 
+WIDTH=$(stty size 2>/dev/null | cut -d' ' -f2)
+
 
 
 print_commands()
 {
     OUTPUT="General
 -------
-basename, cat, chmod, chown, chroot, cp, dirname, find, gzip, ln, ls, mkdir,
-mknod, mount, mv, pwd, readlink, rm, rmdir, stat, sync, tar, touch, umount,
-which, xz, zip, loadkmap, man, showkey, awk, cut, grep, head, less, paste,
-printf, sed, seq, tee, test, tr
+awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, which, xz
 
 Editors & development tools
 ---------------------------
@@ -59,8 +58,7 @@ ed, emacs, git, nano, vi
 
 System & processes
 ------------------
-beep, clear, crontab, date, dmesg, free, halt, hostname, kill, lsblk, lspci,
-lsusb, nice, nohup, nproc, pkill, sleep, stty, top, uname, whoami
+beep, clear, crontab, date, dmesg, free, halt, hostname, kill, lsblk, lspci, lsusb, nice, nohup, nproc, pkill, sleep, stty, top, uname, whoami
 
 Networking & remote access
 --------------------------
@@ -92,7 +90,7 @@ shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres"
         OUTPUT=$(echo "$OUTPUT" | sed -e "s|ftp, ||g")
     fi
 
-    echo "$OUTPUT";
+    echo "$OUTPUT" | fold -s -w "$WIDTH"
 }
 
 print_emacs_hints()
@@ -118,43 +116,34 @@ EOF
 
 print_git_commands()
 {
-cat <<'EOF'
-Supported Git commands
+    OUTPUT="Supported Git commands
 ----------------------
 
-add, blame, branch, checkout, cherry-pick, clean, clone, commit, config, diff,
-fetch, init, log, merge, mv, pull, push, rebase, reflog, remote, reset,
-restore, rm, show, stash, status, switch, tag
-EOF
+add, blame, branch, checkout, cherry-pick, clean, clone, commit, config, diff, fetch, init, log, merge, mv, pull, push, rebase, reflog, remote, reset, restore, rm, show, stash, status, switch, tag"
+
+    echo "$OUTPUT" | fold -s -w "$WIDTH"
 }
 
 print_intro()
 {
-cat <<'EOF'
-What is @NAME@?
+    OUTPUT="What is @NAME@?
 ------------------
-@NAME@ is a minimal Linux distribution designed with 486SX compatibility and
-vintage PCs in mind. It focuses on being small (no more than 75MiB) whilst still
-providing a practical command set and networking utilities. It was inspired by
-FLOPPINUX, but expanded beyond floppy diskette limits.
+@NAME@ is a minimal Linux distribution designed with 486SX compatibility and vintage PCs in mind. It focuses on being small (no more than 75MiB) whilst still providing a practical command set and networking utilities. It was inspired by FLOPPINUX, but expanded beyond floppy diskette limits.
 
 Getting started with @NAME@
 ------------------------------
 1. Set your keyboard's layout with shorkmap.
 2. Pick a font colour for terminal text with shorkcol.
-3. (If compatible) Change your display's resolution with shorkres. A reboot is
-   required afterwards.
-4. Set your computer's name by editing /etc/hostname. A reboot is required
-   afterwards, or you can run:
+3. (If compatible) Change your display's resolution with shorkres. A reboot is required afterwards.
+4. Set your computer's name by editing /etc/hostname. A reboot is required afterwards, or you can run:
       hostname "$(cat /etc/hostname)"
 5. (If applicable) Test your network connection with ping. For example:
       ping sharktastica.co.uk
 6. Run shorkfetch to see a quick overview of your system and environment.
-7. Check shorkhelp's other options to learn about all available commands and
-   other @NAME@ utilities.
-8. When you are finished using @NAME@, run shorkoff to safely bring your
-   system to a halt.
-EOF
+7. Check shorkhelp's other options to learn about all available commands and other @NAME@ utilities.
+8. When you are finished using @NAME@, run shorkoff to safely bring your system to a halt."
+
+    echo "$OUTPUT" | fold -s -w "$WIDTH"
 }
 
 print_utilities()
@@ -162,33 +151,23 @@ print_utilities()
     OUTPUT="@NAME@ utilities
 -------------------
 
-shorkcol - Persistently changes the terminal's foreground (text) colour. This
-utility takes one argument (a colour name); running it without an argument shows
-a list of possible colours.
+shorkcol - Persistently changes the terminal's foreground (text) colour. This utility takes one argument (a colour name); running it without an argument shows a list of possible colours.
 
-shorkfetch - Displays basic system and environment information. Similar to
-fastfetch, neofetch, etc. This utility takes no arguments.
+shorkfetch - Displays basic system and environment information. Similar to fastfetch, neofetch, etc. This utility takes no arguments.
 
-shorkhelp - Provides help with using @NAME@ via command lists, guides and
-cheatsheets. This utility requires the use of one of five parameters.
+shorkhelp - Provides help with using @NAME@ via command lists, guides and cheatsheets. This utility requires the use of one of five parameters.
 
-shorkmap - Persistently changes the system's keymap. This utility takes one
-argument (a keymap name); running it without an argument shows a list of
-possible keymaps.
+shorkmap - Persistently changes the system's keymap. This utility takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
 
-shorkoff - Brings the system to a halt and syncs the write cache, allowing the
-computer to be safely turned off. Similar to poweroff or shutdown -h. This
-utility takes no arguments.
+shorkoff - Brings the system to a halt and syncs the write cache, allowing the computer to be safely turned off. Similar to poweroff or shutdown -h. This utility takes no arguments.
 
-shorkres - Persistently changes the system's display resolution (provided the
-hardware is compatible). This utility takes one argument (a resolution name);
-running it without an argument shows a list of possible resolution names."
+shorkres - Persistently changes the system's display resolution (provided the hardware is compatible). This utility takes one argument (a resolution name); running it without an argument shows a list of possible resolution names."
 
     if ! $SHORKMAP_PRESENT; then
         OUTPUT=$(echo "$OUTPUT" | awk '/^shorkmap -/ {f=1; next} f && /^$/ {f=0; next} !f')
     fi
 
-    echo "$OUTPUT";
+    echo "$OUTPUT" | fold -s -w "$WIDTH"
 }
 
 
@@ -219,7 +198,7 @@ for arg in "$@"; do
             print_intro
             return 1
             ;;
-        --utilities)
+        --shorkutils)
             clear
             print_utilities
             return 1
@@ -227,15 +206,15 @@ for arg in "$@"; do
     esac
 done
 
-CMDS="--commands|--emacs|--git|--intro|--utilities"
+CMDS="--commands | --emacs | --git | --intro | --shorkutils"
 
 if ! $EMACS_PRESENT; then
-    CMDS=$(echo "$CMDS" | sed 's/|--emacs//g; s/--emacs|//g; s/--emacs//g')
+    CMDS=$(echo "$CMDS" | sed -E 's/--emacs \| //g; s/ \| --emacs//g; s/--emacs//g')
 fi
 if ! $GIT_PRESENT; then
-    CMDS=$(echo "$CMDS" | sed 's/|--git//g; s/--git|//g; s/--git//g')
+    CMDS=$(echo "$CMDS" | sed -E 's/--git \| //g; s/ \| --git//g; s/--git//g')
 fi
 
-printf "Displays help and reference information for using @NAME@ and its built-in tools.\n"
-echo "Usage: shorkhelp {$CMDS}"
+printf "Displays help and reference information for using @NAME@ and its built-in tools.\n\n" | fold -s -w "$WIDTH"
+echo "Usage: shorkhelp {$CMDS}" | fold -s -w "$WIDTH"
 exit 1

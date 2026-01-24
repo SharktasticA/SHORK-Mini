@@ -14,12 +14,14 @@ set -e
 KEYMAPS="/usr/share/keymaps"
 KEYMAP_CONF="/etc/keymap"
 
-AVAILABLE="$(ls "$KEYMAPS"/*.kmap.bin 2>/dev/null | sed 's#.*/##; s#\.kmap.bin$##' | tr '\n' '|')"
-AVAILABLE="${AVAILABLE%|}"
+AVAILABLE=$(ls "$KEYMAPS"/*.kmap.bin 2>/dev/null | sed 's#.*/##; s#\.kmap.bin$##' | paste -sd '|' -)
+AVAILABLE=$(echo "$AVAILABLE" | sed 's/|/ | /g')
+
+WIDTH=$(stty size 2>/dev/null | cut -d' ' -f2)
 
 if [ $# -ne 1 ]; then
-    printf "Changes the system's keyboard layout (keymap).\n"
-    echo "Usage: shorkmap {${AVAILABLE}}"
+    printf "Changes the system's keyboard layout (keymap).\n\n" | fold -s -w "$WIDTH"
+    echo "Usage: shorkmap {${AVAILABLE}}" | fold -s -w "$WIDTH"
     if [ -s $KEYMAP_CONF ]; then
         CUR="$(cat $KEYMAP_CONF)"
     else

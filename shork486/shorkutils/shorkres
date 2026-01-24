@@ -13,7 +13,7 @@ set -e
 
 CFG=""
 FB_RES="/etc/fb.res"
-RES="80x24|vga|svga|xga"
+RES="80x24 | vga | svga | xga"
 
 if [ -f /boot/grub/grub.cfg ]; then
     CFG="/boot/grub/grub.cfg"
@@ -21,9 +21,11 @@ elif [ -f /boot/syslinux/syslinux.cfg ]; then
     CFG="/boot/syslinux/syslinux.cfg"
 fi
 
+WIDTH=$(stty size 2>/dev/null | cut -d' ' -f2)
+
 if [ $# -ne 1 ]; then
-    printf "Changes the system's display resolution.\n"
-    echo "Usage: shorkres {$RES}"
+    printf "Changes the system's display resolution.\n\n" | fold -s -w "$WIDTH"
+    echo "Usage: shorkres {$RES}" | fold -s -w "$WIDTH"
     echo "Current resolution: $([ -f $FB_RES ] && cat $FB_RES || echo 80x24)"
 
     exit 1
