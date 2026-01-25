@@ -52,6 +52,7 @@ echo -e "${BLUE}============================${RESET}"
 # Process arguments
 ALWAYS_BUILD=false
 DONT_DEL_ROOT=false
+ENABLE_FB=true
 ENABLE_HIGHMEM=false
 ENABLE_SATA=false
 ENABLE_SMP=false
@@ -153,6 +154,7 @@ done
 # Overrides to ensure "maximal" parameter always takes precedence
 if $MAXIMAL; then
     echo -e "${GREEN}Configuring for a maximal build...${RESET}"
+    ENABLE_FB=true
     ENABLE_HIGHMEM=true
     ENABLE_SATA=true
     ENABLE_SMP=true
@@ -170,6 +172,7 @@ if $MAXIMAL; then
 # Overrides to ensure "minimal" parameter always takes precedence (if not maximal)
 elif $MINIMAL; then
     echo -e "${GREEN}Configuring for a minimal build...${RESET}"
+    ENABLE_FB=false
     ENABLE_HIGHMEM=false
     ENABLE_SATA=false
     ENABLE_SMP=false
@@ -657,7 +660,12 @@ configure_kernel()
     echo -e "${GREEN}Copying base SHORK 486 Linux kernel .config file...${RESET}"
     cp $CURR_DIR/configs/linux.config .config
 
-    FRAGS="$CURR_DIR/configs/linux.config.fb.frag "
+    FRAGS=""
+
+    if $ENABLE_FB; then
+        echo -e "${GREEN}Enabling framebuffer and VGA support...${RESET}"
+        FRAGS+="$CURR_DIR/configs/linux.config.fb.frag "
+    fi
 
     if $ENABLE_HIGHMEM; then
         echo -e "${GREEN}Enabling kernel high memory support...${RESET}"
@@ -1091,12 +1099,16 @@ build_file_system()
     copy_sysfile $CURR_DIR/shorkutils/shorkfetch $CURR_DIR/build/root/usr/bin/shorkfetch
     copy_sysfile $CURR_DIR/shorkutils/shorkcol $CURR_DIR/build/root/usr/libexec/shorkcol
     copy_sysfile $CURR_DIR/shorkutils/shorkhelp $CURR_DIR/build/root/usr/bin/shorkhelp
-    copy_sysfile $CURR_DIR/shorkutils/shorkres $CURR_DIR/build/root/usr/bin/shorkres
 
     echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
     sudo mkdir -p $CURR_DIR/build/root/usr/share/terminfo/src/
     sudo cp $CURR_DIR/sysfiles/terminfo.src $CURR_DIR/build/root/usr/share/terminfo/src/
     sudo tic -x -1 -o usr/share/terminfo $CURR_DIR/build/root/usr/share/terminfo/src/terminfo.src
+
+    if $ENABLE_FB; then
+        echo -e "${GREEN}Installing shorkres as framebuffer and VGA support is present...${RESET}"
+        copy_sysfile $CURR_DIR/shorkutils/shorkres $CURR_DIR/build/root/usr/bin/shorkres
+    fi
 
     if ! $SKIP_KEYMAPS; then
         echo -e "${GREEN}Installing keymaps...${RESET}"

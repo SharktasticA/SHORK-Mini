@@ -131,6 +131,7 @@ It is recommended to move or copy the images out of this directory before extens
 
 * **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a ~10MiB or less disk drive image and a potentially less memory-hungry SHORK 486 system.
     * This is like using the "no boot menu", "skip Dropbear", "skip Emacs", "skip Git", "skip nano", and "skip tnftp" parameters together.
+    * Framebuffer, VESA and enhanced VGA support will be reduced and `shorkres` will not be included.
     * The "enable high memory", "enable SATA", "enable SMP", "enable USB & HID", "skip kernel", "skip BusyBox", and "use GRUB" parameters will be overridden if also used.
     * The minimum system memory requirement is lowered to 12MiB.
 

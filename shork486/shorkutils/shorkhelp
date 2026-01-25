@@ -15,6 +15,7 @@ GIT_PRESENT=true
 LSUSB_PRESENT=true
 NANO_PRESENT=true
 SHORKMAP_PRESENT=true
+SHORKRES_PRESENT=true
 TNFTP_PRESENT=true
 
 if [ ! -x /usr/bin/scp ]; then
@@ -37,6 +38,9 @@ if [ ! -x /usr/bin/nano ]; then
 fi
 if [ ! -x /usr/bin/shorkmap ]; then
     SHORKMAP_PRESENT=false
+fi
+if [ ! -x /usr/bin/shorkres ]; then
+    SHORKRES_PRESENT=false
 fi
 if [ ! -x /usr/bin/ftp ]; then
     TNFTP_PRESENT=false
@@ -85,6 +89,9 @@ shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres"
     fi
     if ! $SHORKMAP_PRESENT; then
         OUTPUT=$(echo "$OUTPUT" | sed -e "s|, shorkmap||g")
+    fi
+    if ! $SHORKRES_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | sed -e "s|, shorkres||g")
     fi
     if ! $TNFTP_PRESENT; then
         OUTPUT=$(echo "$OUTPUT" | sed -e "s|ftp, ||g")
@@ -165,6 +172,10 @@ shorkres - Persistently changes the system's display resolution (provided the ha
 
     if ! $SHORKMAP_PRESENT; then
         OUTPUT=$(echo "$OUTPUT" | awk '/^shorkmap -/ {f=1; next} f && /^$/ {f=0; next} !f')
+    fi
+
+    if ! $SHORKRES_PRESENT; then
+        OUTPUT=$(echo "$OUTPUT" | awk '/^shorkres -/ {f=1; next} f && /^$/ {f=0; next} !f')
     fi
 
     echo "$OUTPUT" | fold -s -w "$WIDTH"
