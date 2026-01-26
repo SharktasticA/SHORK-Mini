@@ -4,7 +4,9 @@ A minimal Linux distribution originally based on [FLOPPINUX's](https://github.co
 
 A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~75MiB on the disk. Despite those constraints, a default SHORK 486 system offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic IDE, ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can both be brought down to ~10MiB, whilst still including the typical commands as before, the vi editor, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
 
-<p align="center"><img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="photos/20260126_365ed_cold_boot_crop.jpg" width="640"></p>
+<p align="center"><img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="photos/20260126_365ed_first_boot_crop.jpg" width="640"></p>
+
+See [GALLERY](GALLERY.md) for more photos!
 
 ## Capabilities
 
