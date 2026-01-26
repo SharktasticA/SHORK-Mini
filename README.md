@@ -10,7 +10,7 @@ A default SHORK 486 system aims to work with at least 16MiB system memory and ta
 
 ### Core commands (BusyBox & util-linux)
 
-awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, dmesg, dirname, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, losetup, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rev, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, whereis, which, xz
+awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, df, dmesg, dirname, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, losetup, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rev, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, swapoff, swapon, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, whereis, which, xz
 
 ### Bundled software
 
@@ -49,11 +49,11 @@ An **Intel 486SX** is the minimum processor requirement. Math emulation is enabl
 
 ### RAM
 
-**16MiB** is the minimum system memory for a default SHORK 486 build. **24MiB** is the recommended amount for some comfortable headroom for programs. Default SHORK 486 is bootable with **as little as 10MiB**, but there will be very little free memory for programs. If you are constrained to that amount, using the "minimal" build parameter to lower that minimum memory requirement from **8MiB** (extreme minimum) to **10MiB** (realistic minimum), or at least using build parameters to skip including network-based programs and features is recommended.
+**16MiB** is the minimum system memory for a default SHORK 486 build. **24MiB** is the recommended amount for some comfortable headroom for programs. Default SHORK 486 is bootable with **as little as 10MiB**, but there will be very little free memory for programs. If you are constrained to that amount, using the "minimal" build parameter to lower that minimum memory requirement from **8MiB** (extreme minimum) to **10MiB** (realistic minimum), or at least using build parameters to skip including network-based programs and features is recommended. To help with tight memory situations, the "target swap" build parameter is available so you can enable and specify a swap partition size between 1 and 24MiB, but note its use may be very slow on period-correct hardware. 
 
 ### Hard drive
 
-Even the most complete SHORK 486 system with all optional features enabled will require no more than a **~75MiB** disk. Using the "minimal" build parameter will reduce this requirement to **~10MiB**, or selectively using skip bundled program or feature parameters can produce a system in between those two numbers.
+Even the most complete SHORK 486 system with all optional features enabled will require no more than a **~75MiB** disk. Using the "minimal" build parameter and not including a swap partition will reduce this requirement to **~10MiB**, or selectively using skip bundled program or feature parameters can produce a system in between those two numbers.
 
 ### Graphics
 
@@ -146,10 +146,14 @@ It is recommended to move or copy the images out of this directory before extens
     * If absent, U.S. English is used as the default keyboard layout.
     * This does nothing if the "skip keymaps" parameter is also used.
 
-* **Target MiB** (`--target-mib`): can be used to specify a target total size in mebibytes for SHORK 486's disk drive images.
-    * Example usage: `--target-mib=75` to specify a 75MiB target size.
+* **Target disk** (`--target-disk`): can be used to specify a target total size in mebibytes for SHORK 486's disk drive images.
+    * Example usage: `--target-disk=75` to specify a 75MiB disk size.
     * The build script will always calculate the minimum required disk drive image size, and if the target is below that, it will default to using this calculated size.
     * Whilst the raw image (`.img`) will be created to this size, the VMware virtual machine disk (`.vmdk`) dynamically expands, so it may initially take up less space.
+
+* **Target swap** (`--target-swap`): can be used to specify a target size in mebibytes for a swap partition. Excluding this parameter will disable including a swap partition. 
+    * Example usage: `--target-swap=16` to specify a 16MiB swap partition size.
+    * The value must be between 1 and 24.
 
 #### Build automation
 

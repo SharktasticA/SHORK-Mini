@@ -24,6 +24,11 @@ mount -t sysfs sysfs /sys
 
 [ -r /etc/hostname ] && hostname "$(cat /etc/hostname)"
 
+# Activate swap if present
+if [ -f /etc/fstab ] && grep -q swap /etc/fstab; then
+    swapon -a 2>/dev/null || true
+fi
+
 # Load persistent keymap (if present)
 if [ -f /etc/keymap ]; then
     KM="$(cat /etc/keymap)"

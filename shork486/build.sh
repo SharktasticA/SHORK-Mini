@@ -74,7 +74,8 @@ SKIP_NANO=false
 SKIP_PCIIDS=false
 SKIP_TMUX=true
 SKIP_TNFTP=false
-TARGET_MIB=""
+TARGET_DISK=""
+TARGET_SWAP=""
 USE_GRUB=false
 
 while [ $# -gt 0 ]; do
@@ -146,8 +147,11 @@ while [ $# -gt 0 ]; do
         --skip-tnftp)
             SKIP_TNFTP=true
             ;;
-        --target-mib=*)
-            TARGET_MIB="${1#*=}"
+        --target-disk=*)
+            TARGET_DISK="${1#*=}"
+            ;;
+        --target-swap=*)
+            TARGET_SWAP="${1#*=}"
             ;;
         --use-grub)
             USE_GRUB=true
@@ -210,16 +214,29 @@ fi
 ## Input validation & parameter conflict checks     ##
 ######################################################
 
-# Target MiB integer check
-if [ -n "$TARGET_MIB" ] && ! [[ "$TARGET_MIB" =~ ^[0-9]+$ ]]; then
-    echo -e "${RED}ERROR: the \"target MiB\" parameter value must be an integer (whole number)${RESET}"
+# Target disk integer check
+if [ -n "$TARGET_DISK" ] && ! [[ "$TARGET_DISK" =~ ^[0-9]+$ ]]; then
+    echo -e "${RED}ERROR: the \"target disk\" parameter value must be an integer (whole number) - exiting${RESET}"
     exit 1
+fi
+
+# Target swap integer and range check
+if [ -n "$TARGET_SWAP" ]; then
+    TARGET_SWAP="$(echo "$TARGET_SWAP" | tr -d '[:space:]')"
+    if ! [[ "$TARGET_SWAP" =~ ^[0-9]+$ ]]; then
+        echo -e "${RED}ERROR: the \"target swap\" parameter value must be an integer (whole number) - exiting${RESET}"
+        exit 1
+    fi
+    if [ "$TARGET_SWAP" -lt 1 ] || [ "$TARGET_SWAP" -gt 24 ]; then
+        echo -e "${RED}ERROR: the \"target swap\" parameter value must be between 1 and 24 - exiting${RESET}"
+        exit 1
+    fi
 fi
 
 # Set keymap existence check
 if [ -n "$SET_KEYMAP" ]; then
     if [ ! -f "$CURR_DIR/sysfiles/keymaps/$SET_KEYMAP.kmap.bin" ]; then
-        echo -e "${RED}ERROR: the \"set keymap\" parameter value does not match a known included keymap${RESET}"
+        echo -e "${RED}ERROR: the \"set keymap\" parameter value does not match a known included keymap - exiting${RESET}"
         exit 1
     fi
 fi
@@ -776,6 +793,11 @@ configure_kernel()
         FRAGS+="$CURR_DIR/configs/linux.config.usb.frag "
     fi
     
+    if [ -n "$TARGET_SWAP" ]; then
+        echo -e "${GREEN}Enabling kernel swap support...${RESET}"
+        FRAGS+="$CURR_DIR/configs/linux.config.swap.frag "
+    fi
+    
     if [ -n "$FRAGS" ]; then
         ./scripts/kconfig/merge_config.sh -m $CURR_DIR/configs/linux.config $FRAGS
         make olddefconfig
@@ -1278,6 +1300,27 @@ build_file_system()
     sudo chown -R root:root .
 }
 
+# Partition disk drive image
+partition_image()
+{
+    cd $CURR_DIR/build/
+
+    local aligned_sectors="$1"
+    local PART_START=63
+
+    if [ -n "$TARGET_SWAP" ] && [ "$TARGET_SWAP" -gt 0 ]; then
+        echo -e "${GREEN}Setting up for root and swap partitions...${RESET}"
+        SWAP_SIZE=$((TARGET_SWAP * 1024 * 1024 / 512))
+        ROOT_SIZE=$((aligned_sectors - PART_START - SWAP_SIZE))
+        SWAP_START=$((PART_START + ROOT_SIZE))
+        sed -e "s/@ROOT_SIZE@/${ROOT_SIZE}/g" -e "s/@SWAP_START@/${SWAP_START}/g" -e "s/@SWAP_SIZE@/${SWAP_SIZE}/g" "$CURR_DIR/sysfiles/partitions_swap" | sudo sfdisk ../images/shork486.img
+    else
+        echo -e "${GREEN}Setting up for just root partition (no swap)...${RESET}"
+        ROOT_SIZE=$((aligned_sectors - PART_START))
+        sed "s/@ROOT_SIZE@/${ROOT_SIZE}/g" "$CURR_DIR/sysfiles/partitions_noswap" | sudo sfdisk ../images/shork486.img
+    fi
+}
+
 # Install GRUB bootloader
 install_grub_bootloader()
 {
@@ -1388,13 +1431,18 @@ build_disk_img()
     mib=$(((total + 1024 * 1024 - 1) / (1024 * 1024)))
     mib=$((((mib + 3) / 4) * 4 ))
 
-    # Use target MiB value is provided
-    if [ -n "$TARGET_MIB" ]; then
-        if [ "$TARGET_MIB" -lt "$mib" ]; then
-            echo -e "${YELLOW}WARNING: the provided target MiB value (${TARGET_MIB}MiB) is smaller than required size (${mib}MiB) - using calculated size instead${RESET}"
+    # Factor in target swap if provided
+    if [ -n "$TARGET_SWAP" ]; then
+        mib=$((mib + TARGET_SWAP))
+    fi
+
+    # Use target disk value is provided
+    if [ -n "$TARGET_DISK" ]; then
+        if [ "$TARGET_DISK" -lt "$mib" ]; then
+            echo -e "${YELLOW}WARNING: the provided target disk value (${TARGET_DISK}MiB) is smaller than required size (${mib}MiB) - using calculated size instead${RESET}"
         else
-            echo -e "${GREEN}Using user-specified disk size (${TARGET_MIB}MiB)${RESET}"
-            mib="$TARGET_MIB"
+            echo -e "${GREEN}Using user-specified disk size (${TARGET_DISK}MiB)${RESET}"
+            mib="$TARGET_DISK"
         fi
     fi
 
@@ -1410,8 +1458,7 @@ build_disk_img()
     truncate -s "$aligned_bytes" ../images/shork486.img
 
     # Partition the image
-    PART_SIZE=$((aligned_sectors - 63))
-    sed "s/@PART_SIZE@/${PART_SIZE}/g" "$CURR_DIR/sysfiles/partitions" | sudo sfdisk ../images/shork486.img
+    partition_image "$aligned_sectors"
 
     # Ensure loop devices exist (Docker does not always create them)
     for i in $(seq 0 255); do
@@ -1422,15 +1469,25 @@ build_disk_img()
     # Expose partition
     loop=$(sudo losetup -f --show ../images/shork486.img)
     sudo kpartx -av "$loop"
-    part="/dev/mapper/$(basename "$loop")p1"
+    root_part="/dev/mapper/$(basename "$loop")p1"
+    if [ -n "$TARGET_SWAP" ]; then
+        swap_part="/dev/mapper/$(basename "$loop")p2"
+    fi
 
     # Create and populate root partition
     echo -e "${GREEN}Creating root partition...${RESET}"
-    sudo mkfs.ext4 -F "$part"
+    sudo mkfs.ext4 -F "$root_part"
     sudo mkdir -p /mnt/shork486
-    sudo mount "$part" /mnt/shork486
+    sudo mount "$root_part" /mnt/shork486
     sudo cp -a root//. /mnt/shork486
     sudo mkdir -p /mnt/shork486/{dev,proc,sys,boot}
+
+    # Create swap partition if enabled
+    if [ -n "$TARGET_SWAP" ]; then
+        echo -e "${GREEN}Creating swap partition...${RESET}"
+        sudo mkswap "$swap_part"
+        echo "/dev/sda2 none swap sw 0 0" | sudo tee -a /mnt/shork486/etc/fstab
+    fi
 
     # Install the kernel
     echo -e "${GREEN}Installing kernel image...${RESET}"
@@ -1446,7 +1503,7 @@ build_disk_img()
     # Ensure file system is in a clean state
     echo -e "${GREEN}Unmounting file system...${RESET}"
     sudo umount /mnt/shork486
-    sudo fsck.ext4 -f -p "$part"
+    sudo fsck.ext4 -f -p "$root_part"
 }
 
 # Converts the disk drive image to VMware virtual machine disk format for testing

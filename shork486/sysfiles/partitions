@@ -1,3 +1,0 @@
-label: dos
-unit: sectors
-1 : start=63, size=@PART_SIZE@, type=83, bootable
