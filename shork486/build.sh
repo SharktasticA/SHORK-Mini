@@ -57,6 +57,7 @@ ENABLE_HIGHMEM=false
 ENABLE_SATA=false
 ENABLE_SMP=false
 ENABLE_USB=false
+FIX_EXTLINUX=fale
 IS_ARCH=false
 IS_DEBIAN=false
 MAXIMAL=false
@@ -88,6 +89,9 @@ while [ $# -gt 0 ]; do
             ;;
         --enable-smp)
             ENABLE_SMP=true
+            ;;
+        --fix-extlinux)
+            FIX_EXTLINUX=true
             ;;
         --enable-usb)
             ENABLE_USB=true
@@ -151,6 +155,12 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+
+
+######################################################
+## Parameter overrides                              ##
+######################################################
+
 # Overrides to ensure "maximal" parameter always takes precedence
 if $MAXIMAL; then
     echo -e "${GREEN}Configuring for a maximal build...${RESET}"
@@ -185,6 +195,11 @@ elif $MINIMAL; then
     SKIP_KRN=false
     SKIP_NANO=true
     SKIP_TNFTP=true
+    USE_GRUB=false
+fi
+
+# Override to ensure "use GRUB" is disabled when "Fix EXTLINUX" parameter is used
+if $FIX_EXTLINUX; then
     USE_GRUB=false
 fi
 
@@ -315,6 +330,10 @@ install_arch_prerequisites()
 
     PACKAGES="autoconf bc base-devel bison bzip2 ca-certificates cpio dosfstools e2fsprogs flex gettext git libtool make multipath-tools ncurses pciutils python qemu-img systemd texinfo util-linux wget xz"
 
+    if $FIX_EXTLINUX; then
+        PACKAGES+=" nasm"
+    fi
+
     if $USE_GRUB; then
         PACKAGES+=" grub"
     else
@@ -330,17 +349,22 @@ install_debian_prerequisites()
     sudo dpkg --add-architecture i386
     sudo apt-get update
 
-    PACKAGES="autopoint bc bison bzip2 e2fsprogs fdisk flex git kpartx libtool make qemu-utils syslinux wget xz-utils"
+    PACKAGES="autopoint bc bison bzip2 e2fsprogs fdisk flex git kpartx libtool make python3 python-is-python3 qemu-utils syslinux wget xz-utils"
 
     if ! $SKIP_GIT; then
         PACKAGES+=" autoconf"
     fi
     if ! $SKIP_PCIIDS; then
-        PACKAGES+=" pciutils python3"
+        PACKAGES+=" pciutils"
     fi
     if ! $SKIP_NANO; then
         PACKAGES+=" texinfo"
     fi
+
+    if $FIX_EXTLINUX; then
+        PACKAGES+=" nasm uuid-dev"
+    fi
+
     if $USE_GRUB; then
         PACKAGES+=" grub-common grub-pc"
     else
@@ -543,6 +567,33 @@ get_tic()
     else
         echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
     fi
+}
+
+# Download and build our forked EXTLINUX (required if "Fix EXTLINUX" was used)
+get_patched_extlinux()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$CURR_DIR/build/syslinux/bios/extlinux/extlinux" ]; then
+        echo -e "${LIGHT_RED}EXTLINUX already built, skipping...${RESET}"
+        return
+    fi
+
+    # Download source
+    if [ -d syslinux ]; then
+        echo -e "${YELLOW}EXTLINUX source already present, resetting...${RESET}"
+        cd syslinux
+        git reset --hard
+    else
+        echo -e "${GREEN}Downloading EXTLINUX...${RESET}"
+        git clone https://github.com/SharktasticA/syslinux.git
+        cd syslinux
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling EXTLINUX...${RESET}"
+    CFLAGS="-fcommon" sudo make bios
 }
 
 
@@ -1192,6 +1243,11 @@ install_extlinux_bootloader()
 {
     cd $CURR_DIR/build/
 
+    EXTLINUX_BIN="extlinux"
+    if $FIX_EXTLINUX; then
+        EXTLINUX_BIN="$CURR_DIR/build/syslinux/bios/extlinux/extlinux"
+    fi
+
     sudo mkdir -p /mnt/shork486/boot/syslinux
 
     if ! $NO_MENU; then
@@ -1226,7 +1282,7 @@ install_extlinux_bootloader()
         copy_sysfile $CURR_DIR/sysfiles/syslinux.cfg.boot  /mnt/shork486/boot/syslinux/syslinux.cfg
     fi
 
-    sudo extlinux --install /mnt/shork486/boot/syslinux
+    sudo "$EXTLINUX_BIN" --install /mnt/shork486/boot/syslinux
 
     # Install MBR boot code
     sudo dd if="$MBR_BIN" of=../images/shork486.img bs=440 count=1 conv=notrunc
@@ -1387,6 +1443,10 @@ if ! $SKIP_TNFTP; then
 fi
 
 trim_fat
+
+if $FIX_EXTLINUX; then
+    get_patched_extlinux
+fi
 
 find_mbr_bin
 build_file_system

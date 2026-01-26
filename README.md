@@ -2,7 +2,7 @@
 
 A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, often with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
-A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~75MiB on the disk. Despite those constraints, a default SHORK 486 system offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic IDE, ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can be brought down to 12MiB and ~10MiB, respectively, whilst still including the typical commands as before, the vi editor, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
+A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~75MiB on the disk. Despite those constraints, a default SHORK 486 system offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic IDE, ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can both be brought down to ~10MiB, whilst still including the typical commands as before, the vi editor, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
 
 <div style="text-align: center;"><img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="screenshots/cold_boot.png"></div>
 
@@ -49,7 +49,7 @@ An **Intel 486SX** is the minimum processor requirement. Math emulation is enabl
 
 ### RAM
 
-**16MiB** is the minimum system memory for a default SHORK 486 build. **24MiB** is the recommended amount for some comfortable headroom for programs. SHORK 486 is bootable with **as little as 12MiB**, but there will be very little free memory for programs. If you are constrained to that amount, using the "minimal" build parameter or at least using build parameters to skip including network-based programs and features is recommended.
+**16MiB** is the minimum system memory for a default SHORK 486 build. **24MiB** is the recommended amount for some comfortable headroom for programs. Default SHORK 486 is bootable with **as little as 10MiB**, but there will be very little free memory for programs. If you are constrained to that amount, using the "minimal" build parameter to lower that minimum memory requirement from **8MiB** (extreme minimum) to **10MiB** (realistic minimum), or at least using build parameters to skip including network-based programs and features is recommended.
 
 ### Hard drive
 
@@ -133,7 +133,7 @@ It is recommended to move or copy the images out of this directory before extens
     * This is like using the "no boot menu", "skip Dropbear", "skip Emacs", "skip Git", "skip nano", and "skip tnftp" parameters together.
     * Framebuffer, VESA and enhanced VGA support will be reduced and `shorkres` will not be included.
     * The "enable high memory", "enable SATA", "enable SMP", "enable USB & HID", "skip kernel", "skip BusyBox", and "use GRUB" parameters will be overridden if also used.
-    * The minimum system memory requirement is lowered to 12MiB.
+    * The minimum system memory requirement is lowered to 8MiB (extreme minimum) to 10MiB (realistic minimum).
 
 * **Maximal** (`--maximal`): can be used to force building and including all bundled programs and features.
     * This is like using the "enable high memory", "enable SATA", "enable SMP" and "enable USB & HID" parameters together.
@@ -207,7 +207,16 @@ These parameters can be used to include, exclude (skip) or select specific bundl
 
 * **Use GRUB** (`--use-grub`): can be used to install a GRUB 2.x bootloader instead of EXTLINUX. This is intended as a diagnostic step when EXTLINUX fails to boot on certain systems.
     * This will add ~13MB to the boot file system.
-    * This does nothing if the "minimal" parameter is also used.
+    * This does nothing if the "fix EXTLINUX" or "minimal" parameters are also used.
+
+#### Fixes
+
+* **Fix EXTLINUX** (`--fix-extlinux`): can be used to force using my forked SYSLINUX repository instead of the host Linux distro's maintained packaged version. This version addresses a memory detection error to resolve the "Booting kernel failed: Invalid argument" or boot menu looping issue that the stock EXTLINUX may encounter when attempting to boot the kernel.
+    * Some people need this, some people do not - see the list below, or try without first, then enable this if this error or something like it occurs.
+    * Known hardware that need this include: Chicony NB5 ([derivatives]((www.macdat.net/laptops/chicony/nb5.php))), IBM 2625 ThinkPad 365E/ED, IBM 6381 PS/ValuePoint
+        * If you discover more hardware that needs this, please get in touch so I can update this list for future users!
+    * This may significantly increase total build time.
+    * The patch was discovered by akeym - thank you!
 
 #### Modern kernel features
 
