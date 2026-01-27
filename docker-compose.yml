@@ -4,8 +4,8 @@ services:
     command:
       - --always-build
       - --is-debian
-      - --target-disk=75
-      - --target-swap=15
+      - --target-disk=72
+      - --target-swap=8
     environment:
       - HOST_GID=1000
       - HOST_UID=1000

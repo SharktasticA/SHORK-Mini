@@ -2,7 +2,7 @@
 
 A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, often with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
 
-A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~75MiB on the disk. Despite those constraints, a default SHORK 486 system offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic IDE, ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can both be brought down to ~10MiB, whilst still including the typical commands as before, the vi editor, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
+A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~72MiB on the disk. Despite those constraints, a default SHORK 486 system offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic IDE, ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can both be brought down to ~10MiB, whilst still including the typical commands as before, the vi editor, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
 
 <p align="center"><img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="photos/20260126_365ed_first_boot_crop.jpg" width="640"></p>
 
@@ -16,10 +16,11 @@ awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, 
 
 ### Bundled software
 
-* ftp (FTP client, tnftp)
+* [file](https://github.com/file/file) (file identification)
+* ftp (FTP client, [tnftp](https://ftp.netbsd.org/pub/NetBSD/misc/tnftp/))
 * emacs (text editor, [Mg](https://github.com/troglobit/mg))
-* git (Git source control client)
-* nano (text editor)
+* [git](https://git-scm.com/) (Git source control client)
+* [nano](https://www.nano-editor.org) (text editor)
 * scp (SCP client, [Dropbear](https://github.com/mkj/dropbear))
 * ssh (SSH client, [Dropbear](https://github.com/mkj/dropbear))
 
@@ -55,7 +56,7 @@ An **Intel 486SX** is the minimum processor requirement. Math emulation is enabl
 
 ### Hard drive
 
-Even the most complete SHORK 486 system with all optional features enabled will require no more than a **~75MiB** disk. Using the "minimal" build parameter and not including a swap partition will reduce this requirement to **~10MiB**, or selectively using skip bundled program or feature parameters can produce a system in between those two numbers.
+Even the most complete SHORK 486 system with all optional features enabled will require no more than a **~72MiB** disk. Using the "minimal" build parameter and not including a swap partition will reduce this requirement to **~10MiB**, or selectively using skip bundled program or feature parameters can produce a system in between those two numbers.
 
 ### Graphics
 
@@ -134,7 +135,7 @@ It is recommended to move or copy the images out of this directory before extens
 #### Core configuration
 
 * **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a ~10MiB or less disk drive image and a potentially less memory-hungry SHORK 486 system.
-    * This is like using the "no boot menu", "skip Dropbear", "skip Emacs", "skip Git", "skip nano", "skip pci.ids", and "skip tnftp" parameters together.
+    * This is like using the "no boot menu", "skip Dropbear", "skip file", "skip Emacs", "skip Git", "skip nano", "skip pci.ids", and "skip tnftp" parameters together.
     * Framebuffer, VESA and enhanced VGA support will be reduced and `shorkres` will not be included.
     * The "enable high memory", "enable SATA", "enable SMP", "enable USB & HID", "skip kernel", "skip BusyBox", and "use GRUB" parameters will be overridden if also used.
     * The minimum system memory requirement is lowered to 8MiB (extreme minimum) to 10MiB (realistic minimum).
@@ -151,7 +152,7 @@ It is recommended to move or copy the images out of this directory before extens
     * This does nothing if the "skip keymaps" parameter is also used.
 
 * **Target disk** (`--target-disk`): can be used to specify a target total size in mebibytes for SHORK 486's disk drive images.
-    * Example usage: `--target-disk=75` to specify a 75MiB disk size.
+    * Example usage: `--target-disk=75` to specify a 72MiB disk size.
     * The build script will always calculate the minimum required disk drive image size, and if the target is below that, it will default to using this calculated size.
     * Whilst the raw image (`.img`) will be created to this size, the VMware virtual machine disk (`.vmdk`) dynamically expands, so it may initially take up less space.
 
@@ -187,6 +188,10 @@ These parameters can be used to include, exclude (skip) or select specific bundl
 
 * **Skip Dropbear** (`--skip-dropbear`): can be used to skip downloading and compiling Dropbear.
     * This will save ~404KiB and 2 files on the root file system. SHORK 486 will lose SCP and SSH capabilities.
+    * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
+
+* **Skip file** (`--skip-file`): can be used to skip downloading and compiling file.
+    * This will save ~10MiB and 4 files on the root file system. SHORK 486 will lose the file command.
     * This does nothing if the "skip kernel" or "skip BusyBox" parameters are also used.
 
 * **Skip Emacs** (`--skip-emacs`): can be used to skip downloading and compiling Mg ("Micro (GNU) Emacs"-like text editor).

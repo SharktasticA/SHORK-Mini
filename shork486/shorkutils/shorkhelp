@@ -10,6 +10,7 @@
 
 
 DROPBEAR_PRESENT=true
+FILE_PRESENT=true
 EMACS_PRESENT=true
 GIT_PRESENT=true
 LSUSB_PRESENT=true
@@ -23,6 +24,9 @@ if [ ! -x /usr/bin/scp ]; then
 fi
 if [ ! -x /usr/bin/ssh ]; then
     DROPBEAR_PRESENT=false
+fi
+if [ ! -x /usr/bin/file ]; then
+    FILE_PRESENT=false
 fi
 if [ ! -x /usr/bin/mg ]; then
     EMACS_PRESENT=false
@@ -54,7 +58,7 @@ print_commands()
 {
     OUTPUT="General
 -------
-awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rev, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, whereis, which, xz
+awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, file, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rev, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, whereis, which, xz
 
 Editors & development tools
 ---------------------------
@@ -74,6 +78,9 @@ shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres"
 
     if ! $DROPBEAR_PRESENT; then
        OUTPUT=$(echo "$OUTPUT" |  sed -e "s|, scp, ssh||g")
+    fi
+    if ! $FILE_PRESENT; then
+       OUTPUT=$(echo "$OUTPUT" |  sed -e "s|, file||g")
     fi
     if ! $EMACS_PRESENT; then
         OUTPUT=$(echo "$OUTPUT" | sed -e "s|, emacs||g")
@@ -135,7 +142,7 @@ print_intro()
 {
     OUTPUT="What is @NAME@?
 ------------------
-@NAME@ is a minimal Linux distribution designed with 486SX compatibility and vintage PCs in mind. It focuses on being small (no more than 75MiB) whilst still providing a practical command set and networking utilities. It was inspired by FLOPPINUX, but expanded beyond floppy diskette limits.
+@NAME@ is a minimal Linux distribution designed with 486SX compatibility and vintage PCs in mind. It focuses on being small (no more than 72MiB) whilst still providing a practical command set and networking utilities. It was inspired by FLOPPINUX, but expanded beyond floppy diskette limits.
 
 Getting started with @NAME@
 ------------------------------

@@ -86,6 +86,7 @@ SKIP_EMACS=false
 SKIP_GIT=false
 SKIP_KEYMAPS=false
 SKIP_KRN=false
+SKIP_FILE=false
 SKIP_NANO=false
 SKIP_PCIIDS=false
 SKIP_TMUX=true
@@ -164,6 +165,10 @@ while [ $# -gt 0 ]; do
             SKIP_KRN=true
             DONT_DEL_ROOT=true
             ;;
+        --skip-file)
+            SKIP_FILE=true
+            BUILD_TYPE="custom"
+            ;;
         --skip-nano)
             SKIP_NANO=true
             BUILD_TYPE="custom"
@@ -213,6 +218,7 @@ if $MAXIMAL; then
     SKIP_GIT=false
     SKIP_KEYMAPS=false
     SKIP_KRN=false
+    SKIP_FILE=false
     SKIP_NANO=false
     SKIP_PCIIDS=false
     SKIP_TNFTP=false
@@ -232,6 +238,7 @@ elif $MINIMAL; then
     SKIP_EMACS=true
     SKIP_GIT=true
     SKIP_KRN=false
+    SKIP_FILE=true
     SKIP_NANO=true
     SKIP_PCIIDS=true
     SKIP_TNFTP=true
@@ -300,6 +307,7 @@ fi
 BUSYBOX_VER="1_36_1"
 CURL_VER="8.18.0"
 DROPBEAR_VER="2025.89"
+FILE_VER="FILE5_46"
 GIT_VER="2.52.0"
 KERNEL_VER="6.14.11"
 LIBEVENT_VER="release-2.1.12-stable"
@@ -487,9 +495,9 @@ get_ncurses()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${PREFIX}/lib/libncursesw.a" ]; then
-        echo -e "${LIGHT_RED}ncurses already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}ncurses already compiled, skipping...${RESET}"
         return
     fi
 
@@ -517,9 +525,9 @@ get_libevent()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${PREFIX}/lib/libevent.a" ]; then
-        echo -e "${LIGHT_RED}libevent already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}libevent already compiled, skipping...${RESET}"
         return
     fi
 
@@ -547,9 +555,9 @@ get_zlib()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "$SYSROOT/usr/lib/libz.a" ]; then
-        echo -e "${LIGHT_RED}zlib already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}zlib already compiled, skipping...${RESET}"
         return
     fi
 
@@ -578,9 +586,9 @@ get_openssl()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "$SYSROOT/lib/libssl.a" ]; then
-        echo -e "${LIGHT_RED}OpenSSL already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}OpenSSL already compiled, skipping...${RESET}"
         return
     fi
 
@@ -607,9 +615,9 @@ get_curl()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "$SYSROOT/lib/libcurl.a" ]; then
-        echo -e "${LIGHT_RED}curl already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}curl already compiled, skipping...${RESET}"
         return
     fi
 
@@ -647,14 +655,13 @@ get_tic()
 {
     cd "$CURR_DIR/build"
 
-    # Check if program already built, skip if so
+    # Check if program already compiled, skip if so
     if [ ! -f "${DESTDIR}/usr/bin/tic" ]; then
         echo -e "${GREEN}Building tic...${RESET}"
         cd $CURR_DIR/build/ncurses/
         ./configure --host=${HOST} --prefix=/usr --with-normal --without-shared --without-debug --without-cxx --enable-widec CC="${CC}" CFLAGS="-Os -static"
         make -C progs tic -j$(nproc)
         sudo install -D progs/tic "${DESTDIR}/usr/bin/tic"
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/tic"
     else
         echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
     fi
@@ -667,9 +674,9 @@ get_patched_extlinux()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "$CURR_DIR/build/syslinux/bios/extlinux/extlinux" ]; then
-        echo -e "${LIGHT_RED}EXTLINUX already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}EXTLINUX already compiled, skipping...${RESET}"
         return
     fi
 
@@ -749,9 +756,9 @@ get_util_linux()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/lsblk" ] && [ -f "${DESTDIR}/usr/bin/whereis" ]; then
-        echo -e "${LIGHT_RED}lsblk and whereis from util-linux already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}lsblk and whereis from util-linux already compiled, skipping...${RESET}"
         return
     fi
 
@@ -777,7 +784,6 @@ get_util_linux()
 
     for bin in lsblk whereis; do
         sudo install -D -m 755 "${bin}" "${DESTDIR}/usr/bin/${bin}"
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/${bin}"
     done
 
     INCLUDED_FEATURES+="\n  * util-linux (lsblk & whereis)"
@@ -956,9 +962,9 @@ get_v86d()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/sbin/v86d" ]; then
-        echo -e "${LIGHT_RED}v86d already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}v86d already compiled, skipping...${RESET}"
         return
     fi
 
@@ -993,9 +999,9 @@ get_dropbear()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/ssh" ]; then
-        echo -e "${LIGHT_RED}Dropbear already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}Dropbear already compiled, skipping...${RESET}"
         return
     fi
 
@@ -1018,8 +1024,6 @@ get_dropbear()
     make PROGRAMS="dbclient scp" -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install PROGRAMS="dbclient scp"
     sudo mv "${DESTDIR}/usr/bin/dbclient" "${DESTDIR}/usr/bin/ssh"
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/ssh"
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/scp"
 }
 
 # Download and compile Emacs (Mg)
@@ -1027,9 +1031,9 @@ get_emacs()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/mg" ]; then
-        echo -e "${LIGHT_RED}Mg already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}Mg already compiled, skipping...${RESET}"
         return
     fi
 
@@ -1063,14 +1067,53 @@ get_emacs()
     sudo ln -sf mg "${DESTDIR}/usr/bin/emacs"
 }
 
+# Download and compile file
+get_file()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already compiled
+    if [ -f "${DESTDIR}/usr/bin/file" ]; then
+        echo -e "${LIGHT_RED}file already compiled, skipping...${RESET}"
+        return
+    fi
+
+    # Download source
+    if [ -d file ]; then
+        echo -e "${YELLOW}file source already present, resetting...${RESET}"
+        cd file
+        git config --global --add safe.directory $CURR_DIR/build/file
+        git reset --hard
+    else
+        echo -e "${GREEN}Downloading file...${RESET}"
+        git clone --branch $FILE_VER https://github.com/file/file.git
+        cd file
+    fi
+
+    # Prune magic database of "non-essential" categories to save space
+    #CULL_LIST="acorn adi adventure algol68 amigaos apple aria asf bioinformatics blackberry c64 claris clojure console convex dolby epoc erlang forth frame freebsd geo hp ispell lif macintosh map mathematica mercurial mips nasa netbsd netscape ole2compounddocs pc98 pdp scientific spectrum statistics ti-8x tplink vacuum-cleaner wordpress xenix zyxel"
+    #for TO_CULL in $CULL_LIST; do
+    #    if [ -f "$CURR_DIR/build/file/magic/Magdir/$TO_CULL" ]; then
+    #        truncate -s 0 "$CURR_DIR/build/file/magic/Magdir/$TO_CULL"
+    #    fi
+    #done
+
+    # Compile and install
+    echo -e "${GREEN}Compiling file...${RESET}"
+    autoreconf -fiv
+    ./configure --host=${HOST} --prefix=/usr --disable-shared --enable-static CC="${CC_STATIC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486" LDFLAGS="-static"
+    make -j$(nproc)
+    sudo make DESTDIR="${DESTDIR}" install
+}
+
 # Download and compile Git
 get_git()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/git" ]; then
-        echo -e "${LIGHT_RED}Git already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}Git already compiled, skipping...${RESET}"
         return
     fi
 
@@ -1093,7 +1136,6 @@ get_git()
     sudo cp $CURR_DIR/configs/git.config.mak config.mak
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/git" 2>/dev/null || true
 }
 
 # Download and compile nano
@@ -1101,9 +1143,9 @@ get_nano()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/nano" ]; then
-        echo -e "${LIGHT_RED}nano already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}nano already compiled, skipping...${RESET}"
         return
     fi
 
@@ -1148,9 +1190,9 @@ get_tmux()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/tmux" ]; then
-        echo -e "${LIGHT_RED}tmux already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}tmux already compiled, skipping...${RESET}"
         return
     fi
 
@@ -1179,9 +1221,9 @@ get_tnftp()
 {
     cd "$CURR_DIR/build"
 
-    # Skip if already built
+    # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/ftp" ]; then
-        echo -e "${LIGHT_RED}tnftp already built, skipping...${RESET}"
+        echo -e "${LIGHT_RED}tnftp already compiled, skipping...${RESET}"
         return
     fi
 
@@ -1216,13 +1258,19 @@ trim_fat()
 {
     echo -e "${GREEN}Trimming any possible fat...${RESET}"
 
-    sudo rm -rf "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
+    sudo rm -rf "${DESTDIR}/usr/lib/pkgconfig" "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
+
+    if ! $SKIP_DROPBEAR; then
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/ssh" || true
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/scp" || true
+    fi
 
     if ! $SKIP_EMACS; then
         sudo rm -rf "${DESTDIR}/usr/share/mg"
     fi
     
     if ! $SKIP_GIT; then
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/git" || true
         cd "$DESTDIR/usr/libexec/git-core"
         sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
         cd "$DESTDIR/usr/bin"
@@ -1231,6 +1279,19 @@ trim_fat()
         # Create empty directory otherwise Git will complain
         sudo mkdir -p "$DESTDIR/usr/share/git-core/templates"
     fi
+
+    if ! $SKIP_FILE; then
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/file" || true
+        sudo rm -rf "${DESTDIR}/usr/include/magic.h"
+        sudo rm -rf "${DESTDIR}/usr/lib/libmagic.a"
+        sudo rm -rf "${DESTDIR}/usr/lib/libmagic.la"
+    fi
+
+    sudo "${STRIP}" "${DESTDIR}/usr/bin/tic" || true
+
+    for bin in lsblk whereis; do
+        sudo "${STRIP}" "${DESTDIR}/usr/bin/${bin}" || true
+    done
 }
 
 
@@ -1530,11 +1591,11 @@ build_disk_img()
     
     echo -e "${GREEN}Creating a disk drive image...${RESET}"
 
-    # Calculate size for the image
+    # Calculate size for the image and align to 4MB boundary
     # OVERHEAD is provided to take into account metadata, partition alignment, bootloader structures, etc.
     KERNEL_SIZE=$(stat -c %s bzImage)
     ROOT_SIZE=$(du -sb root/ | cut -f1)
-    OVERHEAD=$(((KERNEL_SIZE + ROOT_SIZE + 1048576 - 1) / 1048576))
+    OVERHEAD=4
     total=$((KERNEL_SIZE + ROOT_SIZE + OVERHEAD * 1048576))
     TOTAL_DISK_SIZE=$(((total + 1048576 - 1) / 1048576))
     TOTAL_DISK_SIZE=$((((TOTAL_DISK_SIZE + 3) / 4) * 4))
@@ -1741,6 +1802,12 @@ if ! $SKIP_EMACS; then
     INCLUDED_FEATURES+="\n  * Mg"
 else
     EXCLUDED_FEATURES+="\n  * Mg"
+fi
+if ! $SKIP_FILE; then
+    get_file
+    INCLUDED_FEATURES+="\n  * file"
+else
+    EXCLUDED_FEATURES+="\n  * file"
 fi
 if ! $SKIP_GIT; then
     get_git
