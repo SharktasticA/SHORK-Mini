@@ -58,7 +58,7 @@ print_commands()
 {
     OUTPUT="General
 -------
-awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, file, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rev, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, whereis, which, xz
+awk, basename, cat, chmod, chown, chroot, cp, cut, dirname, expr, file, find, fold, grep, gzip, head, less, ln, loadkmap, ls, man, mkdir, mknod, mount, mv, paste, printf, pwd, readlink, rev, rm, rmdir, sed, seq, showkey, stat, sync, tar, tee, test, touch, tr, umount, unzip, whereis, which, xz
 
 Editors & development tools
 ---------------------------
@@ -72,8 +72,8 @@ Networking & remote access
 --------------------------
 ftp, ftpget, ftpput, ifconfig, ping, route, scp, ssh, udhcpc, wget
 
-@NAME@ utilities
--------------------
+SHORK utilities
+---------------
 shorkcol, shorkfetch, shorkhelp, shorkmap, shorkoff, shorkres"
 
     if ! $DROPBEAR_PRESENT; then
@@ -162,8 +162,8 @@ Getting started with @NAME@
 
 print_utilities()
 {
-    OUTPUT="@NAME@ utilities
--------------------
+    OUTPUT="SHORK utilities
+---------------
 
 shorkcol - Persistently changes the terminal's foreground (text) colour. This utility takes one argument (a colour name); running it without an argument shows a list of possible colours.
 

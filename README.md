@@ -12,7 +12,7 @@ See [GALLERY](GALLERY.md) for more photos and screenshots!
 
 ### Core commands (BusyBox & util-linux)
 
-awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, df, dmesg, dirname, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, losetup, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rev, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, swapoff, swapon, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, whereis, which, xz
+awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, date, df, dmesg, dirname, expr, find, fold, free, ftpget, ftpput, gzip, halt, head, hostname, ifconfig, kill, less, ln, ls, losetup, lsblk, lspci, loadkmap, man, mkdir, mknod, mount, mv, nice, nohup, nproc, paste, pkill, ping, printf, pwd, readlink, rev, rm, rmdir, route, sed, seq, showkey, sleep, stat, stty, swapoff, swapon, sync, tar, tee, test, top, touch, tr, udhcpc, umount, uname, unzip, whoami, wget, whereis, which, xz
 
 ### Bundled software
 

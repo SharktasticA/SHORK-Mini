@@ -648,6 +648,9 @@ get_curl()
     ./configure --build="$(gcc -dumpmachine)" --host="${HOST}" --prefix="$SYSROOT" --with-openssl="$SYSROOT" --without-libpsl --disable-shared
     make -j$(nproc)
     make install
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/ncurses.txt
 }
 
 # Download and build tic (required for shorkcol)
@@ -694,6 +697,9 @@ get_patched_extlinux()
     # Compile and install
     echo -e "${GREEN}Compiling EXTLINUX...${RESET}"
     CFLAGS="-fcommon" sudo make bios
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/syslinux.txt
 }
 
 
@@ -749,6 +755,10 @@ get_busybox()
         sudo rm -r "${DESTDIR}"
     fi
     mv _install "${DESTDIR}"
+    mkdir -p $DESTDIR/LICENCES
+
+    # Copy licence file
+    cp LICENSE $CURR_DIR/build/LICENCES/busybox.txt
 }
 
 # Download and compile some extra tools from util-linux (lsblk and whereis)
@@ -787,6 +797,9 @@ get_util_linux()
     done
 
     INCLUDED_FEATURES+="\n  * util-linux (lsblk & whereis)"
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/util-linux.txt
 }
 
 
@@ -874,6 +887,7 @@ compile_kernel()
     make ARCH=x86 olddefconfig
     make ARCH=x86 bzImage -j$(nproc)
     sudo mv arch/x86/boot/bzImage "$CURR_DIR/build" || true
+    cp COPYING $CURR_DIR/build/LICENCES/linux.txt
 }
 
 # Download and compile Linux kernel
@@ -1024,6 +1038,9 @@ get_dropbear()
     make PROGRAMS="dbclient scp" -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install PROGRAMS="dbclient scp"
     sudo mv "${DESTDIR}/usr/bin/dbclient" "${DESTDIR}/usr/bin/ssh"
+
+    # Copy licence file
+    cp LICENSE $CURR_DIR/build/LICENCES/dropbear.txt
 }
 
 # Download and compile Emacs (Mg)
@@ -1065,6 +1082,9 @@ get_emacs()
 
     # Allow running "emacs" to run mg
     sudo ln -sf mg "${DESTDIR}/usr/bin/emacs"
+
+    # Copy licence file
+    cp UNLICENSE $CURR_DIR/build/LICENCES/mg.txt
 }
 
 # Download and compile file
@@ -1104,6 +1124,9 @@ get_file()
     ./configure --host=${HOST} --prefix=/usr --disable-shared --enable-static CC="${CC_STATIC}" AR="${AR}" RANLIB="${RANLIB}" CFLAGS="-Os -march=i486" LDFLAGS="-static"
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/file.txt
 }
 
 # Download and compile Git
@@ -1136,6 +1159,9 @@ get_git()
     sudo cp $CURR_DIR/configs/git.config.mak config.mak
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/git.txt
 }
 
 # Download and compile nano
@@ -1183,6 +1209,9 @@ get_nano()
 
     make TINFO_LIBS="" -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/nano.txt
 }
 
 # Download and compile tmux
@@ -1214,6 +1243,9 @@ get_tmux()
     ./configure --host=${HOST} --prefix=/usr CC="${CC_STATIC}" CFLAGS="-I${PREFIX}/include -I${PREFIX}/include/ncursesw -DHAVE_FORKPTY=1" LDFLAGS="-L${PREFIX}/lib -static" LIBEVENT_CFLAGS="-I${PREFIX}/include" LIBEVENT_LIBS="-L${PREFIX}/lib -levent" CURSES_CFLAGS="-I${PREFIX}/include" CURSES_LIBS="-L${PREFIX}/lib -lncursesw" LIBS="-levent -lutil -lrt -lpthread -lm"
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
+
+    # Copy licence file
+    # TODO
 }
 
 # Download and compile tnftp
@@ -1251,6 +1283,9 @@ get_tnftp()
     make -j$(nproc)
     sudo make DESTDIR="${DESTDIR}" install
     ln -sf tnftp "${DESTDIR}/usr/bin/ftp"
+
+    # Copy licence file
+    cp COPYING $CURR_DIR/build/LICENCES/tnftp.txt
 }
 
 # Removes anything I've seemed unnecessary in the name of space saving 
@@ -1292,6 +1327,14 @@ trim_fat()
     for bin in lsblk whereis; do
         sudo "${STRIP}" "${DESTDIR}/usr/bin/${bin}" || true
     done
+}
+
+# Copies all licences for including software
+copy_licences()
+{
+    echo -e "${GREEN}Copy all needed licences for including software...${RESET}"
+    mkdir -p "$DESTDIR/LICENCES"
+    cp -a "$CURR_DIR/build/LICENCES/." "$DESTDIR/LICENCES/"
 }
 
 
@@ -1341,10 +1384,10 @@ find_mbr_bin()
     done
 }
 
-# Build the file system
+# Builds the root system
 build_file_system()
 {
-    echo -e "${GREEN}Build the file system...${RESET}"
+    echo -e "${GREEN}Building the root system...${RESET}"
     cd "${DESTDIR}"
 
     echo -e "${GREEN}Make needed directories...${RESET}"
@@ -1572,7 +1615,7 @@ build_disk_img()
 {
     cd $CURR_DIR/build/
 
-    # Cleans up all temporary block-device states when script exists, fails or interrupted
+    # Cleans up all temporary block-device states when script exits, fails or interrupted
     cleanup()
     {
         set +e
@@ -1764,7 +1807,7 @@ if ! $DONT_DEL_ROOT; then
     delete_root_dir
 fi
 
-mkdir -p build
+mkdir -p build/LICENCES
 get_prerequisites
 get_i486_musl_cc
 
@@ -1829,6 +1872,7 @@ else
 fi
 
 trim_fat
+copy_licences
 
 if $FIX_EXTLINUX; then
     get_patched_extlinux
