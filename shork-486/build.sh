@@ -1633,14 +1633,14 @@ build_disk_img()
     
     echo -e "${GREEN}Creating a disk image...${RESET}"
 
-    # Calculate size for the image and align to 4MB boundary
+    # Calculate size for the image and align to 4MiB boundary
     # OVERHEAD is provided to take into account metadata, partition alignment, bootloader structures, etc.
-    KERNEL_SIZE=$(stat -c %s bzImage)
-    ROOT_SIZE=$(du -sb root/ | cut -f1)
-    OVERHEAD=$(((KERNEL_SIZE + ROOT_SIZE + 1048576 - 1) / 1048576))
-    total=$((KERNEL_SIZE + ROOT_SIZE + OVERHEAD * 1048576))
-    TOTAL_DISK_SIZE=$(((total + 1048576 - 1) / 1048576))
-    TOTAL_DISK_SIZE=$((((TOTAL_DISK_SIZE + 3) / 4) * 4))
+    KERNEL_BYTES=$(stat -c %s bzImage)
+    ROOT_BYTES=$(du -sb root/ | cut -f1)
+    OVERHEAD_BYTE=$((ROOT_BYTES / 2))
+    TOTAL_BYTES=$((KERNEL_BYTES + ROOT_BYTES + OVERHEAD_BYTE))
+    TOTAL_MIB=$((TOTAL_BYTES / 1048576))
+    TOTAL_DISK_SIZE=$((((TOTAL_MIB + 3) / 4) * 4))
 
     # Factor in target swap if provided
     if [ -n "$TARGET_SWAP" ]; then
