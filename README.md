@@ -1,12 +1,18 @@
 # SHORK 486
 
-A minimal Linux distribution originally based on [FLOPPINUX's](https://github.com/w84death/floppinux) build instructions, but developed into something more automated and tailored for my usage. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, often with my '90s IBM ThinkPads in mind. Whilst FLOPPINUX and [Action Retro's video on it](https://www.youtube.com/watch?v=SiHZbnFrHOY) provided a great basis to start with and inspired me, SHORK 486 does not offer a floppy diskette image. A raw disk drive image is built instead, as my scope includes more utilities and functionality.
+Member of the SHORK family: **SHORK 486** | [SHORK DISKETTE](https://github.com/SharktasticA/SHORK-486)
 
-A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~72MiB on the disk. Despite those constraints, a default SHORK 486 system offers many typical Unix/Linux commands, an FTP, SCP and SSH client, a Git source control client, the Mg (Emacs-style), nano and vi editors, basic IDE, ISA, PCI and PCMCIA NIC support, supports most major keyboard language layouts, and has a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can both be brought down to ~10MiB, whilst still including the typical commands as before, the vi editor, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
+-----
+
+SHORK 486 is a minimal Linux distribution for vintage PCs. The aim is to produce an operating system that is very lean but functional for PCs with 486SX-class or better processors, often with my '90s IBM ThinkPads in mind. It was based on [FLOPPINUX's build instructions](https://github.com/w84death/floppinux) and inspired by [Action Retro's demonstration of it](https://www.youtube.com/watch?v=SiHZbnFrHOY), first developed as an automated build script for achieving something similar but can be Dockerised for building on a wider range of systems, then used as the basis for an operating system with additional functionality and tailored to my usage. Whilst still small for a modern operating system, it exceeds the size of a typical floppy diskette, so it requires being written to a hard disk.
+
+A default SHORK 486 system aims to work with at least 16MiB system memory and take up no more than ~72MiB on the disk. Despite those constraints, the default SHORK 486 experience includes a modern Linux kernel from 2025, many typical Linux commands, custom SHORK utilities, an FTP, SCP and SSH client, a Git source control client, the ed, Mg (Emacs-style), nano and vi editors, basic IDE CD-ROM and DVD-ROM support, basic ISA, PCI and PCMCIA NIC support, support for most major national keyboard layouts, and a cute ASCII shark welcome screen! The build script supports many parameters to alter a SHORK 486 build to your liking. For example, if making a "minimal" build, the RAM requirement and disk size can both be brought down to ~10MiB, whilst still including most typical commands as before, some custom SHORK utilities, the ed and vi editors, and basic networking support. Some people have expressed support for using SHORK 486 on newer hardware for a minimalist Linux environment, and as such, build parameters for enabling high memory, SATA and SMP support are provided if you so desire them!
 
 <p align="center"><img alt="A screenshot of SHORK 486 running on an 86Box virtual machine after a cold boot" src="photos/20260126_365ed_first_boot_crop.jpg" width="640"></p>
 
 See [GALLERY](GALLERY.md) for more photos and screenshots!
+
+
 
 ## Capabilities
 
@@ -29,11 +35,11 @@ awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, 
 * **shorkcol** - Persistently changes the terminal's foreground (text) colour. Takes one argument (a colour name); running it without an argument shows a list of possible colours.
 * **shorkfetch** - Displays basic system and environment information. Similar to fastfetch, neofetch, etc. Takes no arguments.
 * **shorkhelp** - Provides help with using SHORK 486 via command lists, guides and cheatsheets. Requires one of five parameters:
-    * `--commands`: Shows a command list including core commands and utilities, SHORK 486 utilities, bundled software, and supported Git commands.
+    * `--commands`: Shows a command list including core commands, utilities, bundled software, and bundled SHORK utilities.
     * `--emacs`: Shows an Emacs (Mg) cheatsheet.
     * `--git`: Shows a list of supported Git commands.
     * `--intro`: Shows an introductory paragraph for SHORK 486 and a simple getting started guide.
-    * `--shorkutils`: Shows a list of SHORK 486 utilities with a brief explanation of what they do.
+    * `--shorkutils`: Shows a list of SHORK utilities with a brief explanation of what they do.
 * **shorkmap** - Persistently changes the system's keyboard layout (keymap). Takes one argument (a keymap name); running it without an argument shows a list of possible keymaps.
 * **shorkoff** - Brings the system to a halt and syncs the write cache, allowing the computer to be safely turned off. Similar to `poweroff` or `shutdown -h`. Takes no arguments.
 * **shorkres** - Persistently changes the system's display resolution (provided the hardware is compatible). Takes one argument (a resolution name); running it without an argument shows a list of possible resolution names.
@@ -86,7 +92,7 @@ If you are using an Arch or Debian-based Linux, run `build.sh` whilst in the `sh
 
 ### Dockerised building
 
-If you are using Windows, macOS, a Linux distribution that has not been tested with native building, or want some kind of "sandbox" around the build process, you can try Dockerised building instead. It will create a Docker container with a minimal Debian 13 installation that is active for just the lifetime of the build process. Run `docker-compose up` whilst in this repository's directory (not `shork486`).
+If you are using Windows, macOS (x86-64), a Linux distribution that has not been tested with native building, or want some kind of "sandbox" around the build process, you can try Dockerised building instead. It will create a Docker container with a minimal Debian 13 installation that is active for just the lifetime of the build process. You simply run `docker-compose up`.
 
 Build parameters as seen in the "Scripts & parameters" section can also be used for Dockerised building, placed in a list under `services` -> `shork486-build` -> `command` inside `docker-compose.yml`. If a build run has already been made, you may need to run `docker-compose up --build` instead before any changes are applied.
 
@@ -102,19 +108,19 @@ The following describes the build process as it is by default (no build paramete
 
 4. The Linux kernel is downloaded and compiled. `configs/linux.config` is copied during this process, which provides a minimal configuration tailored to support 486SX, PATA/IDE storage devices and basic networking without any further modification or build parameters. The output is `build/bzImage`.
 
-5. ncurses and tic are downloaded and compiled. These are prerequisites required for further program compilation and for SHORK 486 utilities.
+5. ncurses and tic are downloaded and compiled. These are prerequisites required for further program compilation and for SHORK utilities.
 
 6. All bundled software and their required libraries are downloaded and compiled.
 
-7. After compilation, any possible fat will be trimmed to save space (mostly, this is documentation, man pages and templates).
+7. After compilation, any possible fat (documentation, man pages, templates, etc.) will be trimmed to save space, and licences for all bundled software are gathered and copied to the root file system. 
 
-8. Building the root file system is continued. This largely involves creating all required subdirectories, copying all of `sysfiles` contents and SHORK 486 utilities (in `utilities`) to their relevant places within `build/root`. Keymaps, the PCI IDs database and any configuration files for bundled software are also installed at this point.
+8. Building the root file system is continued. This involves creating all required subdirectories, copying all of `sysfiles` contents and SHORK utilities from `shorkutils` to their relevant places within the root file system. Keymaps, the PCI IDs database and any configuration files for bundled software are also installed at this point.
 
-9. A raw disk drive image (`images/shork486.img`) is built, with the root file system copied in and a bootloader installed.
+9. A raw disk image (`images/shork486.img`) is created, and the kernel image, root file system and bootloader are installed to it.
 
-10. `qemu-img` is used to produce a VMware virtual machine disk (`images/shork486.vmdk`) based on the raw disk drive image.
+10. `qemu-img` is used to produce a VMware virtual machine disk (`images/shork486.vmdk`) based on the raw disk image.
 
-11. An after-build report (`images/report.txt`) is generated to help confirm if the build was completed as intended. It confirms what kind of build was made, how long it took to make, what the minimum system memory requirement should be, handy disk image statistics, and what programs or features are included or excluded.
+11. An after-build report (`images/report.txt`) is generated to help confirm if the build was completed as intended. It confirms the type of build made, the time it took to create, the minimum system memory requirement, handy disk image statistics, and which programs or features are included or excluded.
 
 ### After building
 
@@ -126,7 +132,7 @@ It is recommended to move or copy the images out of this directory before extens
 
 ## Scripts & parameters
 
-* `build.sh`: Contains the complete download and compilation process that reproduces a working SHORK 486 system on two disk images. The following parameters are supported:
+* `build.sh`: Contains the complete download and compilation process that reproduces a working SHORK 486 system on two disk images.
 
 * `clean.sh`: Deletes anything that was downloaded, created or generated by `build.sh`.
 
@@ -134,7 +140,7 @@ It is recommended to move or copy the images out of this directory before extens
 
 #### Core configuration
 
-* **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a ~10MiB or less disk drive image and a potentially less memory-hungry SHORK 486 system.
+* **Minimal** (`--minimal`): can be used to skip building and including all non-essential features, producing a ~10MiB or less disk image and a potentially less memory-hungry SHORK 486 system.
     * This is like using the "no boot menu", "skip Dropbear", "skip file", "skip Emacs", "skip Git", "skip nano", "skip pci.ids", and "skip tnftp" parameters together.
     * Framebuffer, VESA and enhanced VGA support will be reduced and `shorkres` will not be included.
     * The "enable high memory", "enable SATA", "enable SMP", "enable USB & HID", "skip kernel", "skip BusyBox", and "use GRUB" parameters will be overridden if also used.
@@ -151,9 +157,9 @@ It is recommended to move or copy the images out of this directory before extens
     * If absent, U.S. English is used as the default keyboard layout.
     * This does nothing if the "skip keymaps" parameter is also used.
 
-* **Target disk** (`--target-disk`): can be used to specify a target total size in mebibytes for SHORK 486's disk drive images.
+* **Target disk** (`--target-disk`): can be used to specify a target total size in mebibytes for SHORK 486's disk images.
     * Example usage: `--target-disk=75` to specify a 72MiB disk size.
-    * The build script will always calculate the minimum required disk drive image size, and if the target is below that, it will default to using this calculated size.
+    * The build script will always calculate the minimum required disk image size, and if the target is below that, it will default to using this calculated size.
     * Whilst the raw image (`.img`) will be created to this size, the VMware virtual machine disk (`.vmdk`) dynamically expands, so it may initially take up less space.
 
 * **Target swap** (`--target-swap`): can be used to specify a target size in mebibytes for a swap partition. Excluding this parameter will disable including a swap partition. 
@@ -253,16 +259,18 @@ These parameters enable kernel-level support for features required by modern har
 
 ## Directories
 
-* `build`: Contains the root file system and kernel image created by the build process.
+* `build`: Contains the source code repositories, the root file system and the kernel image downloaded or made by the build process.
     * Created after a build attempt is made.
     * Do not directly modify or add files to this directory, as the directory may be deleted and recreated upon running the build script again.
 
-* `configs`: Contains my Linux kernel and BusyBox `.config` files that are copied into their respective source code directories before compilation, and a helper when compiling a binary that should be static not dynamic.
+* `configs`: Contains configuration files used when compiling certain software, most notably SHORK 486's tailored Linux kernel and BusyBox `.config` files.
 
-* `images`: Contains the result raw disk drive images and an after-build report created at the end of the build process.
+* `images`: Contains the result raw disk images and an after-build report created by the build process.
     * Created after a build attempt is made.
 
-* `sysfiles`: Contains important system files to be copied into the Linux root file system before zipping.
+* `shorkutils`: Contains custom SHORK utilities to be copied to the root file system 
+
+* `sysfiles`: Contains important system files to be copied into the root file system.
 
 ## Running
 

@@ -350,11 +350,11 @@ delete_root_dir()
     fi
 }
 
-# Fixes directory and disk drive image file permissions after root build
+# Fixes directory and disk image file permissions after root build
 fix_perms()
 {
     if [ "$(id -u)" -eq 0 ]; then
-        echo -e "${GREEN}Fixing directory and disk drive image file permissions so they can be accessed by a non-root user/program after a root build...${RESET}"
+        echo -e "${GREEN}Fixing directory and disk image file permissions so they can be accessed by a non-root user/program after a root build...${RESET}"
 
         HOST_GID=${HOST_GID:-1000}
         HOST_UID=${HOST_UID:-1000}
@@ -750,7 +750,7 @@ get_busybox()
     make ARCH=x86 -j$(nproc)
     make ARCH=x86 install
 
-    echo -e "${GREEN}Move the result into a file system we will build...${RESET}"
+    echo -e "${GREEN}Install BusyBox compilation as the basis for the root file system...${RESET}"
     if [ -d "${DESTDIR}" ]; then
         sudo rm -r "${DESTDIR}"
     fi
@@ -1331,7 +1331,7 @@ trim_fat()
 # Copies all licences for included software
 copy_licences()
 {
-    echo -e "${GREEN}Copy all needed licences for included software...${RESET}"
+    echo -e "${GREEN}Copying all needed licences for included software...${RESET}"
     sudo mkdir -p "$DESTDIR/LICENCES"
     sudo cp -a "$CURR_DIR/build/LICENCES/." "$DESTDIR/LICENCES/"
 }
@@ -1339,7 +1339,7 @@ copy_licences()
 
 
 ######################################################
-## File system & disk drive image building          ##
+## File system & disk image building                ##
 ######################################################
 
 # Copies a sysfile to a destination and makes sure any @NAME@ @VER@, @ID@
@@ -1389,7 +1389,7 @@ build_file_system()
     echo -e "${GREEN}Building the root system...${RESET}"
     cd "${DESTDIR}"
 
-    echo -e "${GREEN}Make needed directories...${RESET}"
+    echo -e "${GREEN}Creating required directories...${RESET}"
     sudo mkdir -p {dev,proc,etc/init.d,sys,tmp,home,usr/share/udhcpc,usr/libexec,banners}
 
     echo -e "${GREEN}Configure permissions...${RESET}"
@@ -1404,7 +1404,7 @@ build_file_system()
     chmod +x $CURR_DIR/shorkutils/shorkmap
     chmod +x $CURR_DIR/shorkutils/shorkres
 
-    echo -e "${GREEN}Copy pre-defined files...${RESET}"
+    echo -e "${GREEN}Copying pre-defined files...${RESET}"
     copy_sysfile $CURR_DIR/sysfiles/welcome-80 $CURR_DIR/build/root/banners/welcome-80
     copy_sysfile $CURR_DIR/sysfiles/welcome-100 $CURR_DIR/build/root/banners/welcome-100
     copy_sysfile $CURR_DIR/sysfiles/welcome-128 $CURR_DIR/build/root/banners/welcome-128
@@ -1424,7 +1424,7 @@ build_file_system()
     copy_sysfile $CURR_DIR/sysfiles/poweroff $CURR_DIR/build/root/sbin/poweroff
     copy_sysfile $CURR_DIR/sysfiles/shutdown $CURR_DIR/build/root/sbin/shutdown
 
-    echo -e "${GREEN}Copy shorkutils...${RESET}"
+    echo -e "${GREEN}Copying shorkutils...${RESET}"
     copy_sysfile $CURR_DIR/shorkutils/shorkcol $CURR_DIR/build/root/usr/libexec/shorkcol
     INCLUDED_FEATURES+="\n  * shorkcol"
     copy_sysfile $CURR_DIR/shorkutils/shorkfetch $CURR_DIR/build/root/usr/bin/shorkfetch
@@ -1434,7 +1434,7 @@ build_file_system()
     copy_sysfile $CURR_DIR/shorkutils/shorkoff $CURR_DIR/build/root/sbin/shorkoff
     INCLUDED_FEATURES+="\n  * shorkoff"
 
-    echo -e "${GREEN}Copy and compile terminfo database...${RESET}"
+    echo -e "${GREEN}Copying and compiling terminfo database...${RESET}"
     sudo mkdir -p $CURR_DIR/build/root/usr/share/terminfo/src/
     sudo cp $CURR_DIR/sysfiles/terminfo.src $CURR_DIR/build/root/usr/share/terminfo/src/
     sudo tic -x -1 -o usr/share/terminfo $CURR_DIR/build/root/usr/share/terminfo/src/terminfo.src
@@ -1507,7 +1507,7 @@ build_file_system()
     sudo chown -R root:root .
 }
 
-# Partition disk drive image
+# Partition disk image
 partition_image()
 {
     cd $CURR_DIR/build/
@@ -1572,7 +1572,7 @@ install_extlinux_bootloader()
     sudo mkdir -p /mnt/shork486/boot/syslinux
 
     if ! $NO_MENU; then
-        echo -e "${GREEN}Installing menu-based Syslinux bootloader...${RESET}"
+        echo -e "${GREEN}Installing menu-based EXTLINUX bootloader...${RESET}"
         copy_sysfile $CURR_DIR/sysfiles/syslinux.cfg.menu  /mnt/shork486/boot/syslinux/syslinux.cfg
         
         SYSLINUX_DIRS="
@@ -1599,7 +1599,7 @@ install_extlinux_bootloader()
         copy_syslinux_file libcom32.c32
         copy_syslinux_file libmenu.c32
     else
-        echo -e "${GREEN}Installing boot-only Syslinux bootloader...${RESET}"
+        echo -e "${GREEN}Installing boot-only EXTLINUX bootloader...${RESET}"
         copy_sysfile $CURR_DIR/sysfiles/syslinux.cfg.boot  /mnt/shork486/boot/syslinux/syslinux.cfg
     fi
 
@@ -1609,7 +1609,7 @@ install_extlinux_bootloader()
     sudo dd if="$MBR_BIN" of=../images/shork486.img bs=440 count=1 conv=notrunc
 }
 
-# Build a disk drive image containing our system
+# Build a disk image containing our system
 build_disk_img()
 {
     cd $CURR_DIR/build/
@@ -1629,9 +1629,9 @@ build_disk_img()
             sudo losetup -d "$loop" 2>/dev/null || true
         fi
     }
-    trap cleanup EXIT INT TERM
+    trap cleanup EXIT ERR INT TERM
     
-    echo -e "${GREEN}Creating a disk drive image...${RESET}"
+    echo -e "${GREEN}Creating a disk image...${RESET}"
 
     # Calculate size for the image and align to 4MB boundary
     # OVERHEAD is provided to take into account metadata, partition alignment, bootloader structures, etc.
@@ -1718,12 +1718,12 @@ build_disk_img()
     sudo fsck.ext4 -f -p "$root_part"
 }
 
-# Converts the disk drive image to VMware virtual machine disk format for testing
+# Converts the disk image to VMware virtual machine disk format for testing
 convert_disk_img()
 {
     cd $CURR_DIR/images/
 
-    echo -e "${GREEN}Creating VMware virtual machine disk from disk drive image...${RESET}"
+    echo -e "${GREEN}Creating VMware virtual machine disk from disk image...${RESET}"
     qemu-img convert -f raw -O vmdk shork486.img shork486.vmdk
 }
 
