@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# STUB - THIS IS NOT FINISHED!
+
+Xfbdev :0 -screen 640x480x16 -fp /usr/lib/X11/fonts/misc/

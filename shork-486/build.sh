@@ -73,6 +73,7 @@ ENABLE_HIGHMEM=false
 ENABLE_SATA=false
 ENABLE_SMP=false
 ENABLE_USB=false
+ENABLE_X11=false
 FIX_EXTLINUX=false
 IS_ARCH=false
 IS_DEBIAN=false
@@ -118,6 +119,10 @@ while [ $# -gt 0 ]; do
             ;;
         --enable-usb)
             ENABLE_USB=true
+            BUILD_TYPE="custom"
+            ;;
+        --enable-x11)
+            ENABLE_X11=true
             BUILD_TYPE="custom"
             ;;
         --is-arch)
@@ -210,6 +215,7 @@ if $MAXIMAL; then
     ENABLE_SATA=true
     ENABLE_SMP=true
     ENABLE_USB=true
+    ENABLE_X11=true
     EST_MIN_RAM="24"
     NO_MENU=false
     SKIP_BB=false
@@ -231,6 +237,7 @@ elif $MINIMAL; then
     ENABLE_SATA=false
     ENABLE_SMP=false
     ENABLE_USB=false
+    ENABLE_X11=false
     EST_MIN_RAM="10"
     NO_MENU=true
     SKIP_BB=false
@@ -393,12 +400,12 @@ install_arch_prerequisites()
 
     PACKAGES="autoconf bc base-devel bison bzip2 ca-certificates cpio dosfstools e2fsprogs flex gettext git libtool make multipath-tools ncurses pciutils python qemu-img systemd texinfo util-linux wget xz"
 
-    if ! $SKIP_TMUX; then
-        PACKAGES+=" pkgconf"
-    fi
-
     if $FIX_EXTLINUX; then
         PACKAGES+=" nasm"
+    fi
+
+    if ! $SKIP_TMUX; then
+        PACKAGES+=" pkgconf"
     fi
 
     if $USE_GRUB; then
@@ -418,6 +425,10 @@ install_debian_prerequisites()
 
     PACKAGES="autopoint bc bison bzip2 e2fsprogs fdisk flex git kpartx libtool make python3 python-is-python3 qemu-utils syslinux wget xz-utils"
 
+    if $FIX_EXTLINUX; then
+        PACKAGES+=" nasm uuid-dev"
+    fi
+
     if ! $SKIP_GIT; then
         PACKAGES+=" autoconf"
     fi
@@ -429,10 +440,6 @@ install_debian_prerequisites()
     fi
     if ! $SKIP_TMUX; then
         PACKAGES+=" pkg-config"
-    fi
-
-    if $FIX_EXTLINUX; then
-        PACKAGES+=" nasm uuid-dev"
     fi
 
     if $USE_GRUB; then
@@ -635,7 +642,7 @@ get_curl()
 
     # Extract source
     if [ -d $CURL ]; then
-        echo -e "${YELLOW}curl's source is already present, cleaning up before proceeding...${RESET}"
+        echo -e "${YELLOW}curl's source archive is already present, re-extracting before proceeding...${RESET}"
         sudo rm -rf $CURL
     fi
     tar xf $CURL_ARC
@@ -824,9 +831,8 @@ configure_kernel()
     cp $CURR_DIR/configs/linux.config .config
 
     FRAGS=""
-
     if $ENABLE_FB; then
-        echo -e "${GREEN}Enabling framebuffer, VESA and enhanced VGA support...${RESET}"
+        echo -e "${GREEN}Enabling kernel framebuffer, VESA and enhanced VGA support...${RESET}"
         FRAGS+="$CURR_DIR/configs/linux.config.fb.frag "
     fi
 
@@ -848,6 +854,11 @@ configure_kernel()
     if $ENABLE_USB; then
         echo -e "${GREEN}Enabling kernel USB & HID support...${RESET}"
         FRAGS+="$CURR_DIR/configs/linux.config.usb.frag "
+    fi
+
+    if $ENABLE_X11; then
+        echo -e "${GREEN}Enabling kernel event interface support...${RESET}"
+        FRAGS+="$CURR_DIR/configs/linux.config.x11.frag "
     fi
     
     if [ -n "$TARGET_SWAP" ]; then
@@ -963,6 +974,12 @@ get_kernel_features()
         EXCLUDED_FEATURES+="\n  * kernel-level USB & HID support"
     fi
     
+    if $ENABLE_X11; then
+        INCLUDED_FEATURES+="\n  * kernel-level event interface support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level event interface support"
+    fi
+    
     if [ -n "$TARGET_SWAP" ]; then
         INCLUDED_FEATURES+="\n  * kernel-level swap support"
     else
@@ -970,7 +987,7 @@ get_kernel_features()
     fi
 }
 
-# Download and compile v86d (needed for uvesafb)
+# Download and compile v86d (needed for uvesafb, NOT PRESENTLY USED)
 get_v86d()
 {
     cd "$CURR_DIR/build"
@@ -999,6 +1016,665 @@ get_v86d()
     make CC="$CC -m32 -static -no-pie" v86d
     install -Dm755 v86d "$DESTDIR/sbin/v86d"
     strip "${DESTDIR}/sbin/v86d"
+}
+
+
+
+######################################################
+## X11/window manager building                      ##
+######################################################
+
+get_xorgproto()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/include/X11/extensions/xproto.h" ]; then
+        echo -e "${LIGHT_RED}xorgproto already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading xorgproto...${RESET}"
+
+    XORGPROTO="xorgproto-2025.1"
+    XORGPROTO_ARC="${XORGPROTO}.tar.xz"
+    XORGPROTO_URI="https://xorg.freedesktop.org/archive/individual/proto/${XORGPROTO_ARC}"
+
+    # Download source
+    [ -f $XORGPROTO_ARC ] || wget $XORGPROTO_URI
+
+    # Extract source
+    if [ -d $XORGPROTO ]; then
+        echo -e "${YELLOW}xorgproto's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -rf $XORGPROTO
+    fi
+    tar xf $XORGPROTO_ARC
+    cd $XORGPROTO
+
+    # Compile and install
+    echo -e "${GREEN}Compiling curxorgprotol...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr --enable-legacy --with-sysroot="$SYSROOT" CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_libxdmcp()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXdmcp.a" ]; then
+        echo -e "${LIGHT_RED}libXdmcp already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXdmcp...${RESET}"
+ 
+    LIBXDMCP="libXdmcp-1.1.5"
+    LIBXDMCP_ARC="${LIBXDMCP}.tar.xz"
+    LIBXDMCP_URI="https://www.x.org/releases/individual/lib/${LIBXDMCP_ARC}"
+
+    # Download source
+    [ -f $LIBXDMCP_ARC ] || wget $LIBXDMCP_URI
+
+    # Extract source
+    if [ -d $LIBXDMCP ]; then
+        echo -e "${YELLOW}libXdmcp's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBXDMCP
+    fi
+    tar xf $LIBXDMCP_ARC
+    cd $LIBXDMCP
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXdmcp...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_libxau()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXau.a" ]; then
+        echo -e "${LIGHT_RED}libXau already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXau...${RESET}"
+
+    LIBXAU="libXau-1.0.12"
+    LIBXAU_ARC="${LIBXAU}.tar.xz"
+    LIBXAU_URI="https://www.x.org/releases/individual/lib/${LIBXAU_ARC}"
+
+    # Download source
+    [ -f $LIBXAU_ARC ] || wget $LIBXAU_URI
+
+    # Extract source
+    if [ -d $LIBXAU ]; then
+        echo -e "${YELLOW}libXau's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBXAU
+    fi
+    tar xf $LIBXAU_ARC
+    cd $LIBXAU
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXau...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_xcbproto()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/share/xcb/xproto.xml" ]; then
+        echo -e "${LIGHT_RED}xcb-proto already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading xcb-proto...${RESET}"
+
+    LIBXCBPROTO="xcb-proto-1.17.0"
+    LIBXCBPROTO_ARC="${LIBXCBPROTO}.tar.xz"
+    LIBXCBPROTO_URI="https://xorg.freedesktop.org/archive/individual/proto/${LIBXCBPROTO_ARC}"
+
+    # Download source
+    [ -f $LIBXCBPROTO_ARC ] || wget $LIBXCBPROTO_URI
+
+    # Extract source
+    if [ -d $LIBXCBPROTO ]; then
+        echo -e "${YELLOW}xcb-proto's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBXCBPROTO
+    fi
+    tar xf $LIBXCBPROTO_ARC
+    cd $LIBXCBPROTO
+
+    # Compile and install
+    echo -e "${GREEN}Compiling xcb-proto...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_libxcb()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libxcb.a" ]; then
+        echo -e "${LIGHT_RED}libxcb already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libxcb...${RESET}"
+
+    LIBXCB="libxcb-1.17.0"
+    LIBXCB_ARC="${LIBXCB}.tar.xz"
+    LIBXCB_URI="https://xorg.freedesktop.org/archive/individual/lib/${LIBXCB_ARC}"
+
+    # Download source
+    [ -f $LIBXCB_ARC ] || wget $LIBXCB_URI
+
+    # Extract source
+    if [ -d $LIBXCB ]; then
+        echo -e "${YELLOW}libxcb's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBXCB
+    fi
+    tar xf $LIBXCB_ARC
+    cd $LIBXCB
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libxcb...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_libx11()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libX11.a" ]; then
+        echo -e "${LIGHT_RED}libX11 already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libX11...${RESET}"
+
+    LIBX11="libX11-1.8.12"
+    LIBX11_ARC="${LIBX11}.tar.xz"
+    LIBX11_URI="https://www.x.org/releases/individual/lib/${LIBX11_ARC}"
+
+    # Download source
+    [ -f $LIBX11_ARC ] || wget $LIBX11_URI
+
+    # Extract source
+    if [ -d $LIBX11 ]; then
+        echo -e "${YELLOW}libX11's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBX11
+    fi
+    tar xf $LIBX11_ARC
+    cd $LIBX11
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libX11...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr --disable-shared --enable-static --with-sysroot="$SYSROOT" CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_libxext()
+{
+    # Prevent hard-coded paths poisoning the cross-compilation linker
+    sudo find "$SYSROOT/usr/lib" -name "*.la" -delete
+
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXext.a" ]; then
+        echo -e "${LIGHT_RED}libXext already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXext...${RESET}"
+
+    LIBXEXT="libXext-1.3.7"
+    LIBXEXT_ARC="${LIBXEXT}.tar.xz"
+    LIBXEXT_URI="https://www.x.org/releases/individual/lib//${LIBXEXT_ARC}"
+
+    # Download source
+    [ -f $LIBXEXT_ARC ] || wget $LIBXEXT_URI
+
+    # Extract source
+    if [ -d $LIBXEXT ]; then
+        echo -e "${YELLOW}libXext's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -rf $LIBXEXT
+    fi
+    tar xf $LIBXEXT_ARC
+    cd $LIBXEXT
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXext...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_libxfixes()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXfixes.a" ]; then
+        echo -e "${LIGHT_RED}libXfixes already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXfixes...${RESET}"
+
+    LIBXFIXES="libXfixes-6.0.2"
+    LIBXFIXES_ARC="${LIBXFIXES}.tar.xz"
+    LIBXFIXES_URI="https://www.x.org/releases/individual/lib/${LIBXFIXES_ARC}"
+
+    # Download source
+    [ -f $LIBXFIXES_ARC ] || wget $LIBXFIXES_URI
+
+    # Extract source
+    if [ -d $LIBXFIXES ]; then
+        echo -e "${YELLOW}libXfixes's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -rf $LIBXFIXES
+    fi
+    tar xf $LIBXFIXES_ARC
+    cd $LIBXFIXES
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXfixes...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_libxi()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXi.a" ]; then
+        echo -e "${LIGHT_RED}libXi already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXi...${RESET}"
+
+    LIBXI="libXi-1.8.2"
+    LIBXI_ARC="${LIBXI}.tar.xz"
+    LIBXI_URI="https://www.x.org/releases/individual/lib/${LIBXI_ARC}"
+
+    # Download source
+    [ -f $LIBXI_ARC ] || wget $LIBXI_URI
+
+    # Extract source
+    if [ -d $LIBXI ]; then
+        echo -e "${YELLOW}libXi's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -rf $LIBXI
+    fi
+    tar xf $LIBXI_ARC
+    cd $LIBXI
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXi...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_libxtst()
+{
+    # Prevent hard-coded paths poisoning the cross-compilation linker
+    sudo find "$SYSROOT/usr/lib" -name "*.la" -delete
+
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXtst.a" ]; then
+        echo -e "${LIGHT_RED}libXtst already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXtst...${RESET}"
+
+    LIBXTST="libXtst-1.2.5"
+    LIBXTST_ARC="${LIBXTST}.tar.xz"
+    LIBXTST_URI="https://www.x.org/releases/individual/lib/${LIBXTST_ARC}"
+
+    # Download source
+    [ -f $LIBXTST_ARC ] || wget $LIBXTST_URI
+
+    # Extract source
+    if [ -d $LIBXTST ]; then
+        echo -e "${YELLOW}libXtst's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -rf $LIBXTST
+    fi
+    tar xf $LIBXTST_ARC
+    cd $LIBXTST
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXtst...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_utilmacros()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/share/pkgconfig/xorg-macros.pc" ]; then
+        echo -e "${LIGHT_RED}util-macros already compiled, skipping...${RESET}"
+        return
+    fi
+
+    UTILMACROS="util-macros-1.20.2"
+    UTILMACROS_ARC="${UTILMACROS}.tar.xz"
+    UTILMACROS_URI="https://www.x.org/releases/individual/util/${UTILMACROS_ARC}"
+
+    echo -e "${GREEN}Downloading util-macros...${RESET}"
+
+    # Download source
+    [ -f $UTILMACROS_ARC ] || wget $UTILMACROS_URI
+
+    # Extract source
+    if [ -d $UTILMACROS ]; then
+        echo -e "${YELLOW}util-macros's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -rf $UTILMACROS
+    fi
+    tar xf $UTILMACROS_ARC
+    cd $UTILMACROS
+
+    # Compile and install
+    echo -e "${GREEN}Compiling util-macros...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_xtrans()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/include/X11/Xtrans/Xtrans.h" ]; then
+        echo -e "${LIGHT_RED}xtrans already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading xtrans...${RESET}"
+
+    XTRANS="xtrans-1.6.0"
+    XTRANS_ARC="${XTRANS}.tar.xz"
+    XTRANS_URI="https://www.x.org/releases/individual/lib/${XTRANS_ARC}"
+
+    # Download source
+    [ -f $XTRANS_ARC ] || wget $XTRANS_URI
+
+    # Extract source
+    if [ -d $XTRANS ]; then
+        echo -e "${YELLOW}xtrans' source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $XTRANS
+    fi
+    tar xf $XTRANS_ARC
+    cd $XTRANS
+
+    # Compile and install
+    echo -e "${GREEN}Compiling xtrans...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_freetype()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libfreetype.a" ]; then
+        echo -e "${LIGHT_RED}freetype already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading freetype...${RESET}"
+
+    FREETYPE="freetype-2.14.1"
+    FREETYPE_ARC="${FREETYPE}.tar.xz"
+    FREETYPE_URI="https://download.savannah.gnu.org/releases/freetype/${FREETYPE_ARC}"
+
+    # Download source
+    [ -f $FREETYPE_ARC ] || wget $FREETYPE_URI
+
+    # Extract source
+    if [ -d $FREETYPE ]; then
+        echo -e "${YELLOW}freetype's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $FREETYPE
+    fi
+    tar xf $FREETYPE_ARC
+    cd $FREETYPE
+
+    # Compile and install
+    echo -e "${GREEN}Compiling freetype...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_libfontenc()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libfontenc.a" ]; then
+        echo -e "${LIGHT_RED}libfontenc already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libfontenc...${RESET}"
+
+    LIBFONTENC="libfontenc-1.1.8"
+    LIBFONTENC_ARC="${LIBFONTENC}.tar.xz"
+    LIBFONTENC_URI="https://www.x.org/releases/individual/lib/${LIBFONTENC_ARC}"
+
+    # Download source
+    [ -f $LIBFONTENC_ARC ] || wget $LIBFONTENC_URI
+
+    # Extract source
+    if [ -d $LIBFONTENC ]; then
+        echo -e "${YELLOW}libfontenc's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBFONTENC
+    fi
+    tar xf $LIBFONTENC_ARC
+    cd $LIBFONTENC
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libfontenc...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make DESTDIR="$SYSROOT" install
+}
+
+get_libxfont()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/lib/libXfont.a" ]; then
+        echo -e "${LIGHT_RED}libXfont already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading libXfont...${RESET}"
+
+    LIBXFONT="libXfont-1.5.4"
+    LIBXFONT_ARC="${LIBXFONT}.tar.gz"
+    LIBXFONT_URI="https://www.x.org/releases/individual/lib/${LIBXFONT_ARC}"
+
+    # Download source
+    [ -f $LIBXFONT_ARC ] || wget $LIBXFONT_URI
+
+    # Extract source
+    if [ -d $LIBXFONT ]; then
+        echo -e "${YELLOW}libXfont's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $LIBXFONT
+    fi
+    tar xzf $LIBXFONT_ARC
+    cd $LIBXFONT
+
+    # Compile and install
+    echo -e "${GREEN}Compiling libXfont...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_fontutil()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$SYSROOT/usr/share/pkgconfig/fontutil.pc" ]; then
+        echo -e "${LIGHT_RED}font-util already compiled, skipping...${RESET}"
+        return
+    fi
+
+    echo -e "${GREEN}Downloading font-util...${RESET}"
+
+    FONTUTIL="font-util-1.4.1"
+    FONTUTIL_ARC="${FONTUTIL}.tar.xz"
+    FONTUTIL_URI="https://www.x.org/releases/individual/font/${FONTUTIL_ARC}"
+
+    # Download source
+    [ -f $FONTUTIL_ARC ] || wget $FONTUTIL_URI
+
+    # Extract source
+    if [ -d $FONTUTIL ]; then
+        echo -e "${YELLOW}font-util's source archive is already present, re-extracting before proceeding...${RESET}"
+        rm -r $FONTUTIL
+    fi
+    tar xf $FONTUTIL_ARC
+    cd $FONTUTIL
+
+    # Compile and install
+    echo -e "${GREEN}Compiling font-util...${RESET}"
+    ./configure --host="$HOST" --prefix=/usr CC="$CC_STATIC" AR="$AR" RANLIB="$RANLIB" STRIP="$STRIP"
+    make -j$(nproc)
+    make install DESTDIR="$SYSROOT"
+}
+
+get_font_misc()
+{
+    cd "$CURR_DIR/build"
+    
+    # We need the font-util to provide the 'bdftopcf' tool logic
+    # and the actual font-misc-misc package for the 'fixed' font.
+    # Package: font-misc-misc-1.0.3 (contains 'fixed')
+    # Package: font-cursor-misc-1.0.3 (contains the 'X' cursor)
+
+    for FONT in font-misc-misc-1.1.3 font-cursor-misc-1.0.4; do
+        echo -e "${GREEN}Building $FONT...${RESET}"
+        
+        ARC="${FONT}.tar.xz"
+        URI="https://www.x.org/releases/individual/font/${ARC}"
+
+        [ -f $ARC ] || wget $URI
+        tar xf $ARC
+        cd $FONT
+
+        # Fonts are cross-compiled differently; they mostly just need a path
+        ./configure --host="$HOST" --prefix=/usr --with-fontdir=/usr/lib/X11/fonts/misc
+            
+        make -j$(nproc)
+        make install DESTDIR="$SYSROOT"
+        cd ..
+    done
+
+    # Copy basic font set
+    FONTDIR=$DESTDIR/usr/lib/X11/fonts/misc
+    mkdir -p $FONTDIR
+    cp $SYSROOT/usr/lib/X11/fonts/misc/6x13.pcf.gz $FONTDIR
+    cp $SYSROOT/usr/lib/X11/fonts/misc/cursor.pcf.gz $FONTDIR
+    cp $CURR_DIR/sysfiles/fonts.dir $FONTDIR
+    echo "fixed -misc-fixed-medium-r-semicondensed--13-120-75-75-c-60-iso10646-1" | sudo tee $FONTDIR/fonts.alias > /dev/null
+}
+
+prepare_x11()
+{
+    export PKG_CONFIG_DIR=""
+    export PKG_CONFIG_LIBDIR="$SYSROOT/usr/lib/pkgconfig:$SYSROOT/usr/share/pkgconfig"
+    export PKG_CONFIG_SYSROOT_DIR="$SYSROOT"
+
+    get_xorgproto
+    get_libxdmcp
+    get_libxau
+    get_xcbproto
+    get_libxcb
+    get_libx11
+    get_libxext
+    get_libxfixes
+    get_libxi
+    get_libxtst
+    get_utilmacros
+    get_xtrans
+    get_freetype
+    get_libfontenc
+    get_libxfont
+    get_fontutil
+    get_font_misc
+}
+
+get_tinyx()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already built
+    if [ -f "$DESTDIR/usr/bin/Xfbdev" ]; then
+        echo -e "${LIGHT_RED}TinyX already compiled, skipping...${RESET}"
+        return
+    fi
+
+    # Prevent hard-coded paths poisoning the cross-compilation linker
+    sudo find "$SYSROOT/usr/lib" -name "*.la" -delete
+
+    # Download source
+    if [ -d tinyx ]; then
+        echo -e "${YELLOW}TinyX source already present, resetting...${RESET}"
+        cd tinyx
+        git reset --hard
+        git clean -fdx
+    else
+        echo -e "${GREEN}Downloading TinyX...${RESET}"
+        git clone https://github.com/tinycorelinux/tinyx.git
+        cd tinyx
+    fi
+    
+    export ACLOCAL_PATH="$SYSROOT/usr/share/aclocal"
+
+    LINK_LIBS="-lXtst -lXi -lXext -lXfixes -lXfont -lfontenc -lX11 -lxcb -lXau -lXdmcp -lfreetype -lz -lm"
+
+    # Compile and install
+    echo -e "${GREEN}Compiling TinyX...${RESET}"
+    ./autogen.sh
+    ./configure --host="${HOST}" --prefix=/usr --with-sysroot="$SYSROOT" --disable-xorg --enable-kdrive --enable-xfbdev --disable-shared --enable-static CC="${CC_STATIC}" CPPFLAGS="-I$SYSROOT/usr/include -I$SYSROOT/usr/include/freetype2" CFLAGS="-Os -march=i486 -static --sysroot=$SYSROOT" LDFLAGS="-static -L$SYSROOT/usr/lib --sysroot=$SYSROOT" LIBS="$LINK_LIBS" \XSERVERCFLAGS_CFLAGS="-I$SYSROOT/usr/include -I$SYSROOT/usr/include/freetype2" XSERVERLIBS_LIBS="$LINK_LIBS"
+    make -j$(nproc)
+    make DESTDIR="${DESTDIR}" install
+}
+
+get_twm()
+{
+    return
 }
 
 
@@ -1185,7 +1861,7 @@ get_nano()
 
     # Extract source
     if [ -d $NANO ]; then
-        echo -e "${YELLOW}nano's source is already present, cleaning up before proceeding...${RESET}"
+        echo -e "${YELLOW}nano's source archive is already present, re-extracting before proceeding...${RESET}"
         sudo rm -rf $NANO
     fi
     tar xf $NANO_ARC
@@ -1269,7 +1945,7 @@ get_tnftp()
 
     # Extract source
     if [ -d $TNFTP ]; then
-        echo -e "${YELLOW}tnftp's source is already present, cleaning up before proceeding...${RESET}"
+        echo -e "${YELLOW}tnftp's source archive is already present, re-extracting before proceeding...${RESET}"
         sudo rm -rf $TNFTP
     fi
     tar xzf $TNFTP_ARC
@@ -1369,12 +2045,7 @@ copy_sysfile()
 # Find and set MBR binary (can be different depending on distro)
 find_mbr_bin()
 {
-    for candidate in \
-        /usr/lib/SYSLINUX/mbr.bin \
-        /usr/lib/syslinux/mbr/mbr.bin \
-        /usr/lib/syslinux/bios/mbr.bin \
-        /usr/share/syslinux/mbr.bin \
-        /usr/share/syslinux/mbr.bin
+    for candidate in /usr/lib/SYSLINUX/mbr.bin /usr/lib/syslinux/mbr/mbr.bin /usr/lib/syslinux/bios/mbr.bin /usr/share/syslinux/mbr.bin /usr/share/syslinux/mbr.bin
     do
         if [ -f "$candidate" ]; then
             MBR_BIN="$candidate"
@@ -1403,62 +2074,71 @@ build_file_system()
     chmod +x $CURR_DIR/shorkutils/shorkhelp
     chmod +x $CURR_DIR/shorkutils/shorkmap
     chmod +x $CURR_DIR/shorkutils/shorkres
+    chmod +x $CURR_DIR/shorkutils/shorkgui
 
     echo -e "${GREEN}Copying pre-defined files...${RESET}"
-    copy_sysfile $CURR_DIR/sysfiles/welcome-80 $CURR_DIR/build/root/banners/welcome-80
-    copy_sysfile $CURR_DIR/sysfiles/welcome-100 $CURR_DIR/build/root/banners/welcome-100
-    copy_sysfile $CURR_DIR/sysfiles/welcome-128 $CURR_DIR/build/root/banners/welcome-128
-    copy_sysfile $CURR_DIR/sysfiles/goodbye-80 $CURR_DIR/build/root/banners/goodbye-80
-    copy_sysfile $CURR_DIR/sysfiles/goodbye-100 $CURR_DIR/build/root/banners/goodbye-100
-    copy_sysfile $CURR_DIR/sysfiles/goodbye-128 $CURR_DIR/build/root/banners/goodbye-128
-    copy_sysfile $CURR_DIR/sysfiles/hostname $CURR_DIR/build/root/etc/hostname
-    copy_sysfile $CURR_DIR/sysfiles/issue $CURR_DIR/build/root/etc/issue
-    copy_sysfile $CURR_DIR/sysfiles/os-release $CURR_DIR/build/root/etc/os-release
-    copy_sysfile $CURR_DIR/sysfiles/rc $CURR_DIR/build/root/etc/init.d/rc
-    copy_sysfile $CURR_DIR/sysfiles/inittab $CURR_DIR/build/root/etc/inittab
-    copy_sysfile $CURR_DIR/sysfiles/profile $CURR_DIR/build/root/etc/profile
-    copy_sysfile $CURR_DIR/sysfiles/resolv.conf $CURR_DIR/build/root/etc/resolv.conf
-    copy_sysfile $CURR_DIR/sysfiles/services $CURR_DIR/build/root/etc/services
-    copy_sysfile $CURR_DIR/sysfiles/default.script $CURR_DIR/build/root/usr/share/udhcpc/default.script
-    copy_sysfile $CURR_DIR/sysfiles/passwd $CURR_DIR/build/root/etc/passwd
-    copy_sysfile $CURR_DIR/sysfiles/poweroff $CURR_DIR/build/root/sbin/poweroff
-    copy_sysfile $CURR_DIR/sysfiles/shutdown $CURR_DIR/build/root/sbin/shutdown
+    copy_sysfile $CURR_DIR/sysfiles/welcome-80 $DESTDIR/banners/welcome-80
+    copy_sysfile $CURR_DIR/sysfiles/welcome-100 $DESTDIR/banners/welcome-100
+    copy_sysfile $CURR_DIR/sysfiles/welcome-128 $DESTDIR/banners/welcome-128
+    copy_sysfile $CURR_DIR/sysfiles/goodbye-80 $DESTDIR/banners/goodbye-80
+    copy_sysfile $CURR_DIR/sysfiles/goodbye-100 $DESTDIR/banners/goodbye-100
+    copy_sysfile $CURR_DIR/sysfiles/goodbye-128 $DESTDIR/banners/goodbye-128
+    copy_sysfile $CURR_DIR/sysfiles/hostname $DESTDIR/etc/hostname
+    copy_sysfile $CURR_DIR/sysfiles/issue $DESTDIR/etc/issue
+    copy_sysfile $CURR_DIR/sysfiles/os-release $DESTDIR/etc/os-release
+    copy_sysfile $CURR_DIR/sysfiles/rc $DESTDIR/etc/init.d/rc
+    copy_sysfile $CURR_DIR/sysfiles/inittab $DESTDIR/etc/inittab
+    copy_sysfile $CURR_DIR/sysfiles/profile $DESTDIR/etc/profile
+    copy_sysfile $CURR_DIR/sysfiles/resolv.conf $DESTDIR/etc/resolv.conf
+    copy_sysfile $CURR_DIR/sysfiles/services $DESTDIR/etc/services
+    copy_sysfile $CURR_DIR/sysfiles/default.script $DESTDIR/usr/share/udhcpc/default.script
+    copy_sysfile $CURR_DIR/sysfiles/passwd $DESTDIR/etc/passwd
+    copy_sysfile $CURR_DIR/sysfiles/poweroff $DESTDIR/sbin/poweroff
+    copy_sysfile $CURR_DIR/sysfiles/shutdown $DESTDIR/sbin/shutdown
 
     echo -e "${GREEN}Copying shorkutils...${RESET}"
-    copy_sysfile $CURR_DIR/shorkutils/shorkcol $CURR_DIR/build/root/usr/libexec/shorkcol
+    copy_sysfile $CURR_DIR/shorkutils/shorkcol $DESTDIR/usr/libexec/shorkcol
     INCLUDED_FEATURES+="\n  * shorkcol"
-    copy_sysfile $CURR_DIR/shorkutils/shorkfetch $CURR_DIR/build/root/usr/bin/shorkfetch
+    copy_sysfile $CURR_DIR/shorkutils/shorkfetch $DESTDIR/usr/bin/shorkfetch
     INCLUDED_FEATURES+="\n  * shorkfetch"
-    copy_sysfile $CURR_DIR/shorkutils/shorkhelp $CURR_DIR/build/root/usr/bin/shorkhelp
+    copy_sysfile $CURR_DIR/shorkutils/shorkhelp $DESTDIR/usr/bin/shorkhelp
     INCLUDED_FEATURES+="\n  * shorkhelp"
-    copy_sysfile $CURR_DIR/shorkutils/shorkoff $CURR_DIR/build/root/sbin/shorkoff
+    copy_sysfile $CURR_DIR/shorkutils/shorkoff $DESTDIR/sbin/shorkoff
     INCLUDED_FEATURES+="\n  * shorkoff"
 
     echo -e "${GREEN}Copying and compiling terminfo database...${RESET}"
-    sudo mkdir -p $CURR_DIR/build/root/usr/share/terminfo/src/
-    sudo cp $CURR_DIR/sysfiles/terminfo.src $CURR_DIR/build/root/usr/share/terminfo/src/
-    sudo tic -x -1 -o usr/share/terminfo $CURR_DIR/build/root/usr/share/terminfo/src/terminfo.src
+    sudo mkdir -p $DESTDIR/usr/share/terminfo/src/
+    sudo cp $CURR_DIR/sysfiles/terminfo.src $DESTDIR/usr/share/terminfo/src/
+    sudo tic -x -1 -o usr/share/terminfo $DESTDIR/usr/share/terminfo/src/terminfo.src
 
     if $ENABLE_FB; then
-        echo -e "${GREEN}Installing shorkres as framebuffer and VGA support is present...${RESET}"
-        copy_sysfile $CURR_DIR/shorkutils/shorkres $CURR_DIR/build/root/usr/bin/shorkres
+        echo -e "${GREEN}Installing shorkres as framebuffer, VESA and enhanced VGA support is present...${RESET}"
+        copy_sysfile $CURR_DIR/shorkutils/shorkres $DESTDIR/usr/bin/shorkres
         INCLUDED_FEATURES+="\n  * shorkres"
     else
         EXCLUDED_FEATURES+="\n  * shorkres"
     fi
 
+    if $ENABLE_X11; then
+        echo -e "${GREEN}Installing shorkgui as X11 support is enabled...${RESET}"
+        copy_sysfile $CURR_DIR/shorkutils/shorkgui $DESTDIR/usr/bin/shorkgui
+        INCLUDED_FEATURES+="\n  * shorkgui"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkgui"
+    fi
+
     if ! $SKIP_KEYMAPS; then
         echo -e "${GREEN}Installing keymaps...${RESET}"
-        sudo mkdir -p $CURR_DIR/build/root/usr/share/keymaps/
-        sudo cp $CURR_DIR/sysfiles/keymaps/*.kmap.bin "$CURR_DIR/build/root/usr/share/keymaps/"
-        sudo chmod 644 "$CURR_DIR/build/root/usr/share/keymaps/"*.kmap.bin
+        sudo mkdir -p $DESTDIR/usr/share/keymaps/
+        sudo cp $CURR_DIR/sysfiles/keymaps/*.kmap.bin "$DESTDIR/usr/share/keymaps/"
+        sudo chmod 644 "$DESTDIR/usr/share/keymaps/"*.kmap.bin
 
         echo -e "${GREEN}Installing shorkmap utility...${RESET}"
-        copy_sysfile $CURR_DIR/shorkutils/shorkmap $CURR_DIR/build/root/usr/bin/shorkmap
+        copy_sysfile $CURR_DIR/shorkutils/shorkmap $DESTDIR/usr/bin/shorkmap
 
         if [ -n "$SET_KEYMAP" ]; then
             echo -e "${GREEN}Setting default keymap...${RESET}"
-            echo "$SET_KEYMAP" | sudo tee "$CURR_DIR/build/root/etc/keymap" > /dev/null
+            echo "$SET_KEYMAP" | sudo tee "$DESTDIR/etc/keymap" > /dev/null
         fi
 
         INCLUDED_FEATURES+="\n  * keymaps"
@@ -1482,25 +2162,25 @@ build_file_system()
     if $NEED_OPENSSL; then
         # Use host's CA certifications to get OpenSSL working
         echo -e "${GREEN}Installing CA certificates for OpenSSL...${RESET}"
-        sudo mkdir -p $CURR_DIR/build/root/etc/ssl
-        copy_sysfile /etc/ssl/certs/ca-certificates.crt $CURR_DIR/build/root/etc/ssl/cert.pem
+        sudo mkdir -p $DESTDIR/etc/ssl
+        copy_sysfile /etc/ssl/certs/ca-certificates.crt $DESTDIR/etc/ssl/cert.pem
     fi
 
     if ! $SKIP_EMACS; then
         echo -e "${GREEN}Copying pre-defined Mg settings...${RESET}"
-        copy_sysfile $CURR_DIR/sysfiles/mg $CURR_DIR/build/root/etc/mg
+        copy_sysfile $CURR_DIR/sysfiles/mg $DESTDIR/etc/mg
     fi
 
     if ! $SKIP_GIT; then
         echo -e "${GREEN}Copying pre-defined Git settings...${RESET}"
-        sudo mkdir -p $CURR_DIR/build/root/usr/etc
-        copy_sysfile $CURR_DIR/sysfiles/gitconfig $CURR_DIR/build/root/usr/etc/gitconfig
+        sudo mkdir -p $DESTDIR/usr/etc
+        copy_sysfile $CURR_DIR/sysfiles/gitconfig $DESTDIR/usr/etc/gitconfig
     fi
 
     if ! $SKIP_NANO; then
         echo -e "${GREEN}Copying pre-defined nano settings...${RESET}"
-        sudo mkdir -p $CURR_DIR/build/root/usr/etc
-        copy_sysfile $CURR_DIR/sysfiles/nanorc $CURR_DIR/build/root/usr/etc/nanorc
+        sudo mkdir -p $DESTDIR/usr/etc
+        copy_sysfile $CURR_DIR/sysfiles/nanorc $DESTDIR/usr/etc/nanorc
     fi
 
     cd "${DESTDIR}"
@@ -1831,6 +2511,11 @@ if $NEED_OPENSSL; then
 fi
 if $NEED_CURL; then
     get_curl
+fi
+
+if $ENABLE_X11; then
+    prepare_x11
+    get_tinyx
 fi
 
 if ! $SKIP_DROPBEAR; then
