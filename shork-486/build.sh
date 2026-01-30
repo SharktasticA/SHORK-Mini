@@ -65,6 +65,7 @@ INCLUDED_FEATURES=""
 ROOT_PART_SIZE=""
 TOTAL_DISK_SIZE=""
 USED_PARAMS=""
+USED_WM=""
 
 # Process arguments
 ALWAYS_BUILD=false
@@ -72,7 +73,6 @@ ENABLE_FB=true
 ENABLE_HIGHMEM=false
 ENABLE_SATA=false
 ENABLE_SMP=false
-ENABLE_TWM=false
 ENABLE_USB=false
 ENABLE_X11=false
 FIX_EXTLINUX=false
@@ -115,17 +115,12 @@ while [ $# -gt 0 ]; do
             ENABLE_SMP=true
             BUILD_TYPE="custom"
             ;;
-        --enable-twm)
-            ENABLE_TWM=true
-            BUILD_TYPE="custom"
-            ;;
         --enable-usb)
             ENABLE_USB=true
             BUILD_TYPE="custom"
             ;;
         --enable-x11)
             ENABLE_X11=true
-            BUILD_TYPE="custom"
             ;;
         --fix-extlinux)
             FIX_EXTLINUX=true
@@ -201,6 +196,9 @@ while [ $# -gt 0 ]; do
             USE_GRUB=true
             BUILD_TYPE="custom"
             ;;
+        --use-twm)
+            USED_WM="TWM"
+            ;;
     esac
     shift
 done
@@ -210,6 +208,11 @@ done
 ######################################################
 ## Parameter overrides                              ##
 ######################################################
+
+# Override build type to "X11" if not already "custom" and the "enable X11" parameter is used
+if [[ "$BUILD_TYPE" != "custom" && "$ENABLE_X11" == true ]]; then
+    BUILD_TYPE="X11"
+fi
 
 # Overrides to ensure "maximal" parameter always takes precedence
 if $MAXIMAL; then
@@ -233,6 +236,7 @@ if $MAXIMAL; then
     SKIP_NANO=false
     SKIP_PCIIDS=false
     SKIP_TNFTP=false
+    USED_WM="TWM"
 # Overrides to ensure "minimal" parameter always takes precedence (if not maximal)
 elif $MINIMAL; then
     echo -e "${GREEN}Configuring for a minimal build...${RESET}"
@@ -255,6 +259,7 @@ elif $MINIMAL; then
     SKIP_PCIIDS=true
     SKIP_TNFTP=true
     USE_GRUB=false
+    USED_WM=""
 fi
 
 # Override to ensure the "use GRUB" parameter is disabled when the "Fix EXTLINUX" parameter is used
@@ -264,7 +269,9 @@ fi
 
 # Override to ensure the "enable TWM" parameter is disabled when the "use X11" parameter is not used
 if ! $ENABLE_X11; then
-    ENABLE_TWM=false
+    USED_WM=""
+elif [[ $USED_WM == "" ]]; then
+    USED_WM="TWM"
 fi
 
 
@@ -312,7 +319,7 @@ NEED_ZLIB=false
 NEED_OPENSSL=false
 NEED_CURL=false
 
-if $ENABLE_TWM; then
+if [[ $USED_WM == "TWM" ]]; then
     NEED_ZLIB=true
 fi
 
@@ -415,7 +422,7 @@ install_arch_prerequisites()
 
     PACKAGES="autoconf bc base-devel bison bzip2 ca-certificates cpio dosfstools e2fsprogs flex gettext git libtool make multipath-tools ncurses pciutils python qemu-img systemd texinfo util-linux wget xz"
 
-    if $ENABLE_TWM; then
+    if [[ $USED_WM == "TWM" ]]; then
         PACKAGES+=" gperf"
     fi
 
@@ -448,7 +455,7 @@ install_debian_prerequisites()
 
     PACKAGES="autopoint bc bison bzip2 e2fsprogs fdisk flex git kpartx libtool make python3 python-is-python3 qemu-utils syslinux wget xz-utils"
 
-    if $ENABLE_TWM; then
+    if [[ $USED_WM == "TWM" ]]; then
         PACKAGES+=" gperf"
     fi
 
@@ -1936,7 +1943,7 @@ prepare_x11()
     get_libxi
     get_libxtst
 
-    if $ENABLE_TWM; then
+    if [[ $USED_WM == "TWM" ]]; then
         get_libice
         get_libsm
         get_libxt
@@ -1946,7 +1953,7 @@ prepare_x11()
     get_utilmacros
     get_freetype
 
-    if $ENABLE_TWM; then
+    if [[ $USED_WM == "TWM" ]]; then
         get_libexpat
         get_fontconfig
         get_libxrender
@@ -1975,6 +1982,7 @@ get_tinyx()
     # Download source
     if [ -d tinyx ]; then
         echo -e "${YELLOW}TinyX source already present, resetting...${RESET}"
+        git config --global --add safe.directory "$CURR_DIR/build/tinyx"
         cd tinyx
         git reset --hard
         git clean -fdx
@@ -2012,6 +2020,7 @@ get_twm()
     # Download source
     if [ -d twm ]; then
         echo -e "${YELLOW}TWM source already present, resetting...${RESET}"
+        git config --global --add safe.directory "$CURR_DIR/build/twm"
         cd twm
         git reset --hard
         git clean -fdx
@@ -2052,6 +2061,7 @@ get_st()
     # Download source
     if [ -d st ]; then
         echo -e "${YELLOW}st source already present, resetting...${RESET}"
+        git config --global --add safe.directory "$CURR_DIR/build/st"
         cd st
         git reset --hard
         git clean -fdx
@@ -2363,9 +2373,14 @@ trim_fat()
 
     sudo rm -rf "${DESTDIR}/usr/lib/pkgconfig" "$DESTDIR/usr/share/man" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/bash-completion"
 
+    if $ENABLE_X11; then
+        sudo $STRIP "${DESTDIR}/usr/bin/Xfbdev" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/Xvesa" || true
+    fi
+
     if ! $SKIP_DROPBEAR; then
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/ssh" || true
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/scp" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/ssh" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/scp" || true
     fi
 
     if ! $SKIP_EMACS; then
@@ -2373,7 +2388,7 @@ trim_fat()
     fi
     
     if ! $SKIP_GIT; then
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/git" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/git" || true
         cd "$DESTDIR/usr/libexec/git-core"
         sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
         cd "$DESTDIR/usr/bin"
@@ -2384,16 +2399,21 @@ trim_fat()
     fi
 
     if ! $SKIP_FILE; then
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/file" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/file" || true
         sudo rm -rf "${DESTDIR}/usr/include/magic.h"
         sudo rm -rf "${DESTDIR}/usr/lib/libmagic.a"
         sudo rm -rf "${DESTDIR}/usr/lib/libmagic.la"
     fi
 
-    sudo "${STRIP}" "${DESTDIR}/usr/bin/tic" || true
+    if [[ $USED_WM == "TWM" ]]; then
+        sudo $STRIP "${DESTDIR}/usr/bin/st" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/twm" || true
+    fi
+
+    sudo $STRIP "${DESTDIR}/usr/bin/tic" || true
 
     for bin in lsblk whereis; do
-        sudo "${STRIP}" "${DESTDIR}/usr/bin/${bin}" || true
+        sudo $STRIP "${DESTDIR}/usr/bin/${bin}" || true
     done
 }
 
@@ -2717,7 +2737,6 @@ build_disk_img()
     else
         OVERHEAD_BYTES=$((ROOT_BYTES / 2))
     fi
-
     TOTAL_BYTES=$((KERNEL_BYTES + ROOT_BYTES + OVERHEAD_BYTES))
     TOTAL_MIB=$((TOTAL_BYTES / 1048576))
     TOTAL_DISK_SIZE=$((((TOTAL_MIB + 3) / 4) * 4))
@@ -2917,7 +2936,7 @@ if $ENABLE_X11; then
     prepare_x11
     get_tinyx
     INCLUDED_FEATURES+="\n  * TinyX"
-    if $ENABLE_TWM; then
+    if [[ $USED_WM == "TWM" ]]; then
         get_twm
         get_st
         INCLUDED_FEATURES+="\n  * TWM"
@@ -2927,6 +2946,7 @@ if $ENABLE_X11; then
     fi
 else
     EXCLUDED_FEATURES+="\n  * TinyX"
+    EXCLUDED_FEATURES+="\n  * TWM"
     EXCLUDED_FEATURES+="\n  * st"
 fi
 
