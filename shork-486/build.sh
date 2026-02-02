@@ -2923,8 +2923,6 @@ build_file_system()
             echo -e "${GREEN}Installing SHORK-specific TWM configuration...${RESET}"
             copy_sysfile $CURR_DIR/sysfiles/system.twmrc $DESTDIR/usr/share/X11/twm/system.twmrc
         fi
-
-    sudo cp $CURR_DIR/configs/system.twmrc src/system.twmrc
     else
         EXCLUDED_FEATURES+="\n  * shorkgui"
     fi
