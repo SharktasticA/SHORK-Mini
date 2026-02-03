@@ -2901,29 +2901,11 @@ trim_fat()
 
     sudo rm -rf "${DESTDIR}/usr/lib/pkgconfig" "$DESTDIR/usr/man" "$DESTDIR/usr/share/bash-completion" "$DESTDIR/usr/share/doc" "$DESTDIR/usr/share/man"
 
-    if $ENABLE_GUI; then
-        sudo $STRIP "${DESTDIR}/usr/bin/Xfbdev" || true
-        sudo $STRIP "${DESTDIR}/usr/bin/Xvesa" || true
-
-        sudo $STRIP "${DESTDIR}/usr/bin/st" || true
-        sudo $STRIP "${DESTDIR}/usr/bin/xli" || true
-
-        if [[ $USED_WM == "TWM" ]]; then
-            sudo $STRIP "${DESTDIR}/usr/bin/twm" || true
-        fi
-    fi
-
-    if ! $SKIP_DROPBEAR; then
-        sudo $STRIP "${DESTDIR}/usr/bin/ssh" || true
-        sudo $STRIP "${DESTDIR}/usr/bin/scp" || true
-    fi
-
     if ! $SKIP_EMACS; then
         sudo rm -rf "${DESTDIR}/usr/share/mg"
     fi
     
     if ! $SKIP_GIT; then
-        sudo $STRIP "${DESTDIR}/usr/bin/git" || true
         cd "$DESTDIR/usr/libexec/git-core"
         sudo rm -f git-imap-send git-http-fetch git-http-backend git-daemon git-p4 git-svn git-send-email
         cd "$DESTDIR/usr/bin"
@@ -2934,23 +2916,21 @@ trim_fat()
     fi
 
     if ! $SKIP_FILE; then
-        sudo $STRIP "${DESTDIR}/usr/bin/file" || true
         sudo rm -rf "${DESTDIR}/usr/include/magic.h"
         sudo rm -rf "${DESTDIR}/usr/lib/libmagic.a"
         sudo rm -rf "${DESTDIR}/usr/lib/libmagic.la"
     fi
 
     if ! $SKIP_ROVER; then
-        sudo $STRIP "${DESTDIR}/usr/bin/rover" || true
         sudo rm -rf "${DESTDIR}/usr/include/magic.h"
         sudo rm -rf "${DESTDIR}/usr/lib/libmagic.a"
         sudo rm -rf "${DESTDIR}/usr/lib/libmagic.la"
     fi
 
-    sudo $STRIP "${DESTDIR}/usr/bin/tic" || true
-
-    for bin in lsblk whereis; do
-        sudo $STRIP "${DESTDIR}/usr/bin/${bin}" || true
+    for bin in "$DESTDIR"/usr/bin/*; do
+        if [ -f "$bin" ]; then
+            sudo $STRIP $bin 2>/dev/null || true
+        fi
     done
 }
 
