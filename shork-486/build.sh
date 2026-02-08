@@ -480,7 +480,7 @@ install_arch_prerequisites()
     PACKAGES="autoconf bc base-devel bison bzip2 ca-certificates cpio dosfstools e2fsprogs flex gettext git libtool make multipath-tools ncurses pciutils python qemu-img systemd texinfo util-linux wget xz"
 
     if $ENABLE_GUI; then
-        PACKAGES+=" fontconfig unzip xfonts-utils xorg-font-util xorg-mkfontscale"
+        PACKAGES+=" fontconfig unzip xorg-bdftopcf xorg-font-util xorg-mkfontscale"
     fi
 
     if $FIX_EXTLINUX; then
@@ -501,7 +501,7 @@ install_arch_prerequisites()
         PACKAGES+=" gperf"
     fi
 
-    sudo pacman -Syu --noconfirm --needed $PACKAGES || true
+    sudo pacman -Syu --noconfirm --needed $PACKAGES
 }
 
 install_debian_prerequisites()
@@ -543,7 +543,7 @@ install_debian_prerequisites()
         PACKAGES+=" gperf"
     fi
 
-    sudo apt-get install -y $PACKAGES || true
+    sudo apt-get install -y $PACKAGES
 
     export PATH="$PATH:/usr/sbin:/sbin"
 }

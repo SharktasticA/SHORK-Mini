@@ -4,8 +4,11 @@ services:
     command:
       - --always-build
       - --is-debian
-      - --target-disk=72
+      - --target-disk=100
       - --target-swap=8
+      - --fix-extlinux
+      - --enable-gui
+      #- --skip-busybox
     environment:
       - HOST_GID=1000
       - HOST_UID=1000
