@@ -22,12 +22,12 @@ awk, basename, beep, blkid, cat, chmod, chown, chroot, clear, cp, crontab, cut, 
 
 ### Bundled software
 
+* emacs (text editor, [Mg](https://github.com/troglobit/mg))
 * [file](https://github.com/file/file) (file identification)
 * ftp (FTP client, [tnftp](https://ftp.netbsd.org/pub/NetBSD/misc/tnftp/))
-* emacs (text editor, [Mg](https://github.com/troglobit/mg))
 * [git](https://git-scm.com/) (Git source control client)
 * [nano](https://www.nano-editor.org) (text editor)
-* [Rover](https://github.com/lecram/rover) (file browser)
+* [rover](https://github.com/lecram/rover) (file browser)
 * scp (SCP client, [Dropbear](https://github.com/mkj/dropbear))
 * ssh (SSH client, [Dropbear](https://github.com/mkj/dropbear))
 

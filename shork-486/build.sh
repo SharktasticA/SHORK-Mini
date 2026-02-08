@@ -773,8 +773,6 @@ get_tic()
     else
         echo -e "${LIGHT_RED}tic already compiled, skipping...${RESET}"
     fi
-
-    INCLUDED_FEATURES+="\n  * tic"
 }
 
 # Download and build our forked EXTLINUX (required if "Fix EXTLINUX" was used)
@@ -905,8 +903,6 @@ get_util_linux()
         sudo install -D -m 755 "${bin}" "${DESTDIR}/usr/bin/${bin}"
     done
 
-    INCLUDED_FEATURES+="\n  * util-linux (lsblk & whereis)"
-
     # Copy licence file
     cp COPYING $CURR_DIR/build/LICENCES/util-linux.txt
 }
@@ -934,6 +930,11 @@ configure_kernel()
     cp $CURR_DIR/configs/linux.config .config
 
     FRAGS=""
+
+    if $ENABLE_GUI; then
+        echo -e "${GREEN}Enabling kernel event interface support...${RESET}"
+        FRAGS+="$CURR_DIR/configs/linux.config.x11.frag "
+    fi
     
     if $ENABLE_FB; then
         echo -e "${GREEN}Enabling kernel framebuffer, VESA and enhanced VGA support...${RESET}"
@@ -949,6 +950,11 @@ configure_kernel()
         echo -e "${GREEN}Enabling kernel SATA support...${RESET}"
         FRAGS+="$CURR_DIR/configs/linux.config.sata.frag "
     fi
+    
+    if [ -n "$TARGET_SWAP" ]; then
+        echo -e "${GREEN}Enabling kernel swap support...${RESET}"
+        FRAGS+="$CURR_DIR/configs/linux.config.swap.frag "
+    fi
 
     if $ENABLE_SMP; then
         echo -e "${GREEN}Enabling kernel symmetric multiprocessing (SMP) support...${RESET}"
@@ -958,16 +964,6 @@ configure_kernel()
     if $ENABLE_USB; then
         echo -e "${GREEN}Enabling kernel USB & HID support...${RESET}"
         FRAGS+="$CURR_DIR/configs/linux.config.usb.frag "
-    fi
-
-    if $ENABLE_GUI; then
-        echo -e "${GREEN}Enabling kernel event interface support...${RESET}"
-        FRAGS+="$CURR_DIR/configs/linux.config.x11.frag "
-    fi
-    
-    if [ -n "$TARGET_SWAP" ]; then
-        echo -e "${GREEN}Enabling kernel swap support...${RESET}"
-        FRAGS+="$CURR_DIR/configs/linux.config.swap.frag "
     fi
     
     if [ -n "$FRAGS" ]; then
@@ -1038,56 +1034,6 @@ get_kernel()
     fi
 
     compile_kernel
-}
-
-# Makes sure that the after-build report includes kernel statistics
-# This is separate to configure_kernel so that these are still recorded if
-# the "skip kernel" parameter is used.
-get_kernel_features()
-{
-    if $ENABLE_FB; then
-        INCLUDED_FEATURES+="\n  * kernel-level framebuffer, VESA & enhanced VGA support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level framebuffer, VESA & enhanced VGA support"
-    fi
-
-    if $ENABLE_HIGHMEM; then
-        EST_MIN_RAM="24MiB or 16MiB + 8MiB swap"
-        INCLUDED_FEATURES+="\n  * kernel-level high memory support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level high memory support"
-    fi
-
-    if $ENABLE_SATA; then
-        EST_MIN_RAM="24MiB or 16MiB + 8MiB swap"
-        INCLUDED_FEATURES+="\n  * kernel-level SATA support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level SATA support"
-    fi
-
-    if $ENABLE_SMP; then
-        INCLUDED_FEATURES+="\n  * kernel-level SMP support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level SMP support"
-    fi
-
-    if $ENABLE_USB; then
-        INCLUDED_FEATURES+="\n  * kernel-level USB & HID support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level USB & HID support"
-    fi
-    
-    if $ENABLE_GUI; then
-        INCLUDED_FEATURES+="\n  * kernel-level event interface support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level event interface support"
-    fi
-    
-    if [ -n "$TARGET_SWAP" ]; then
-        INCLUDED_FEATURES+="\n  * kernel-level swap support"
-    else
-        EXCLUDED_FEATURES+="\n  * kernel-level swap support"
-    fi
 }
 
 # Download and compile v86d (needed for uvesafb, NOT PRESENTLY USED)
@@ -3313,13 +3259,9 @@ build_file_system()
     echo -e "${GREEN}Copying shorkutils...${RESET}"
     copy_sysfile $CURR_DIR/shorkutils/shorkcol $DESTDIR/usr/libexec/shorkcol
     copy_sysfile $CURR_DIR/sysfiles/shorkcol.conf $DESTDIR/etc/shorkcol.conf
-    INCLUDED_FEATURES+="\n  * shorkcol"
     copy_sysfile $CURR_DIR/shorkutils/shorkfetch $DESTDIR/usr/bin/shorkfetch
-    INCLUDED_FEATURES+="\n  * shorkfetch"
     copy_sysfile $CURR_DIR/shorkutils/shorkhelp $DESTDIR/usr/bin/shorkhelp
-    INCLUDED_FEATURES+="\n  * shorkhelp"
     copy_sysfile $CURR_DIR/shorkutils/shorkoff $DESTDIR/sbin/shorkoff
-    INCLUDED_FEATURES+="\n  * shorkoff"
 
     echo -e "${GREEN}Copying and compiling terminfo database...${RESET}"
     sudo mkdir -p $DESTDIR/usr/share/terminfo/src/
@@ -3329,9 +3271,6 @@ build_file_system()
     if $ENABLE_FB; then
         echo -e "${GREEN}Installing shorkres as framebuffer, VESA and enhanced VGA support is present...${RESET}"
         copy_sysfile $CURR_DIR/shorkutils/shorkres $DESTDIR/usr/bin/shorkres
-        INCLUDED_FEATURES+="\n  * shorkres"
-    else
-        EXCLUDED_FEATURES+="\n  * shorkres"
     fi
 
     if $ENABLE_GUI; then
@@ -3341,14 +3280,11 @@ build_file_system()
         copy_sysfile $CURR_DIR/sysfiles/shork-486-dark.png $DESTDIR/usr/share/backgrounds/shork-486-dark.png
         copy_sysfile $CURR_DIR/sysfiles/shork-486-light.png $DESTDIR/usr/share/backgrounds/shork-486-light.png
         copy_sysfile $CURR_DIR/sysfiles/XCalc $DESTDIR/usr/share/X11/app-defaults/XCalc
-        INCLUDED_FEATURES+="\n  * shorkgui"
         if [[ $USED_WM == "TWM" ]]; then 
             echo -e "${GREEN}Installing SHORKGUI-specific configuration...${RESET}"
             copy_sysfile $CURR_DIR/sysfiles/dark.twmrc $DESTDIR/usr/share/X11/twm/dark.twmrc
             copy_sysfile $CURR_DIR/sysfiles/light.twmrc $DESTDIR/usr/share/X11/twm/light.twmrc
         fi
-    else
-        EXCLUDED_FEATURES+="\n  * shorkgui"
     fi
 
     if ! $SKIP_KEYMAPS; then
@@ -3364,12 +3300,6 @@ build_file_system()
             echo -e "${GREEN}Setting default keymap...${RESET}"
             echo "$SET_KEYMAP" | sudo tee "$DESTDIR/etc/keymap" > /dev/null
         fi
-
-        INCLUDED_FEATURES+="\n  * keymaps"
-        INCLUDED_FEATURES+="\n  * shorkmap"
-    else
-        EXCLUDED_FEATURES+="\n  * keymaps"
-        EXCLUDED_FEATURES+="\n  * shorkmap"
     fi
 
     if ! $SKIP_PCIIDS; then
@@ -3378,9 +3308,6 @@ build_file_system()
         echo -e "${GREEN}Generating pci.ids database...${RESET}"
         cd $CURR_DIR/
         sudo python3 -c "from helpers import *; build_pci_ids()"
-        INCLUDED_FEATURES+="\n  * pci.ids database"
-    else
-        EXCLUDED_FEATURES+="\n  * pci.ids database"
     fi
 
     if $NEED_OPENSSL; then
@@ -3642,6 +3569,193 @@ convert_disk_img()
 ## End of build report generation                   ##
 ######################################################
 
+# Checks what kernel-level support, programs and features are enabled and makes a list
+# for the after-build report
+get_installed_programs_features()
+{
+    # Kernel features
+    if $ENABLE_GUI; then
+        INCLUDED_FEATURES+="\n  * kernel-level event interface support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level event interface support"
+    fi
+    if $ENABLE_FB; then
+        INCLUDED_FEATURES+="\n  * kernel-level framebuffer, VESA & enhanced VGA support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level framebuffer, VESA & enhanced VGA support"
+    fi
+    if $ENABLE_HIGHMEM; then
+        EST_MIN_RAM="24MiB or 16MiB + 8MiB swap"
+        INCLUDED_FEATURES+="\n  * kernel-level high memory support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level high memory support"
+    fi
+    if $ENABLE_SATA; then
+        EST_MIN_RAM="24MiB or 16MiB + 8MiB swap"
+        INCLUDED_FEATURES+="\n  * kernel-level SATA support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level SATA support"
+    fi
+    if $ENABLE_SMP; then
+        INCLUDED_FEATURES+="\n  * kernel-level SMP support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level SMP support"
+    fi
+    if [ -n "$TARGET_SWAP" ]; then
+        INCLUDED_FEATURES+="\n  * kernel-level swap support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level swap support"
+    fi
+    if $ENABLE_USB; then
+        INCLUDED_FEATURES+="\n  * kernel-level USB & HID support"
+    else
+        EXCLUDED_FEATURES+="\n  * kernel-level USB & HID support"
+    fi
+
+    # Misc features
+    if [ -f "$DESTDIR/usr/share/keymaps/us.kmap.bin" ]; then
+        INCLUDED_FEATURES+="\n  * keymaps"
+    else
+        EXCLUDED_FEATURES+="\n  * keymaps"
+    fi
+    if [ -f "$DESTDIR/usr/share/misc/pci.ids" ]; then
+        INCLUDED_FEATURES+="\n  * pci.ids database"
+    else
+        EXCLUDED_FEATURES+="\n  * pci.ids database"
+    fi
+
+    # SHORK Utilities
+    if [ -f "$DESTDIR/usr/libexec/shorkcol" ]; then
+        INCLUDED_FEATURES+="\n  * shorkcol"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkcol"
+    fi
+    if [ -f "$DESTDIR/usr/bin/shorkfetch" ]; then
+        INCLUDED_FEATURES+="\n  * shorkfetch"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkfetch"
+    fi
+    if [ -f "$DESTDIR/usr/bin/shorkgui" ]; then
+        INCLUDED_FEATURES+="\n  * shorkgui"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkgui"
+    fi
+    if [ -f "$DESTDIR/usr/bin/shorkhelp" ]; then
+        INCLUDED_FEATURES+="\n  * shorkhelp"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkhelp"
+    fi
+    if [ -f "$DESTDIR/usr/bin/shorkmap" ]; then
+        INCLUDED_FEATURES+="\n  * shorkmap"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkmap"
+    fi
+    if [ -f "$DESTDIR/sbin/shorkoff" ]; then
+        INCLUDED_FEATURES+="\n  * shorkoff"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkoff"
+    fi
+    if [ -f "$DESTDIR/usr/bin/shorkres" ]; then
+        INCLUDED_FEATURES+="\n  * shorkres"
+    else
+        EXCLUDED_FEATURES+="\n  * shorkres"
+    fi
+
+    # SHORKTUI
+    if [ -f "$DESTDIR/usr/bin/emacs" ]; then
+        INCLUDED_FEATURES+="\n  * emacs (Mg)"
+    else
+        EXCLUDED_FEATURES+="\n  * emacs (Mg)"
+    fi
+    if [ -f "$DESTDIR/usr/bin/file" ]; then
+        INCLUDED_FEATURES+="\n  * file"
+    else
+        EXCLUDED_FEATURES+="\n  * file"
+    fi
+    if [ -f "$DESTDIR/usr/bin/ftp" ]; then
+        INCLUDED_FEATURES+="\n  * ftp (tnftp)"
+    else
+        EXCLUDED_FEATURES+="\n  * ftp (tnftp)"
+    fi
+    if [ -f "$DESTDIR/usr/bin/git" ]; then
+        INCLUDED_FEATURES+="\n  * git"
+    else
+        EXCLUDED_FEATURES+="\n  * git"
+    fi
+    if [ -f "$DESTDIR/usr/bin/nano" ]; then
+        INCLUDED_FEATURES+="\n  * nano"
+    else
+        EXCLUDED_FEATURES+="\n  * nano"
+    fi
+    if [ -f "$DESTDIR/usr/bin/rover" ]; then
+        INCLUDED_FEATURES+="\n  * rover"
+    else
+        EXCLUDED_FEATURES+="\n  * rover"
+    fi
+    if [ -f "$DESTDIR/usr/bin/scp" ]; then
+        INCLUDED_FEATURES+="\n  * scp (Dropbear)"
+    else
+        EXCLUDED_FEATURES+="\n  * scp (Dropbear)"
+    fi
+    if [ -f "$DESTDIR/usr/bin/ssh" ]; then
+        INCLUDED_FEATURES+="\n  * ssh (Dropbear)"
+    else
+        EXCLUDED_FEATURES+="\n  * ssh (Dropbear)"
+    fi
+    if [ -f "$DESTDIR/usr/bin/tic" ]; then
+        INCLUDED_FEATURES+="\n  * tic"
+    else
+        EXCLUDED_FEATURES+="\n  * tic"
+    fi
+
+    # SHORKGUI
+    if [ -f "$DESTDIR/usr/bin/oneko" ]; then
+        INCLUDED_FEATURES+="\n  * oneko"
+    else
+        EXCLUDED_FEATURES+="\n  * oneko"
+    fi
+    if [ -f "$DESTDIR/usr/bin/st" ]; then
+        INCLUDED_FEATURES+="\n  * st"
+    else
+        EXCLUDED_FEATURES+="\n  * st"
+    fi
+    if [ -f "$DESTDIR/usr/bin/xcalc" ]; then
+        INCLUDED_FEATURES+="\n  * xcalc"
+    else
+        EXCLUDED_FEATURES+="\n  * xcalc"
+    fi
+    if [ -f "$DESTDIR/usr/bin/xclock" ]; then
+        INCLUDED_FEATURES+="\n  * xclock"
+    else
+        EXCLUDED_FEATURES+="\n  * xclock"
+    fi
+    if [ -f "$DESTDIR/usr/bin/xeyes" ]; then
+        INCLUDED_FEATURES+="\n  * xeyes"
+    else
+        EXCLUDED_FEATURES+="\n  * xeyes"
+    fi
+    if [ -f "$DESTDIR/usr/bin/xli" ]; then
+        INCLUDED_FEATURES+="\n  * xli"
+    else
+        EXCLUDED_FEATURES+="\n  * xli"
+    fi
+    if [ -f "$DESTDIR/usr/bin/xload" ]; then
+        INCLUDED_FEATURES+="\n  * xload"
+    else
+        EXCLUDED_FEATURES+="\n  * xload"
+    fi
+    if [ -f "$DESTDIR/usr/bin/Xfbdev" ]; then
+        INCLUDED_FEATURES+="\n  * Xfbdev (TinyX)"
+    else
+        EXCLUDED_FEATURES+="\n  * Xfbdev (TinyX)"
+    fi
+    if [ -f "$DESTDIR/usr/bin/xset" ]; then
+        INCLUDED_FEATURES+="\n  * xset"
+    else
+        EXCLUDED_FEATURES+="\n  * xset"
+    fi
+}
+
 # Generate a report to go in the images folder to indicate details about this build
 generate_report()
 {
@@ -3734,7 +3848,6 @@ get_util_linux
 if ! $SKIP_KRN; then
     get_kernel
 fi
-get_kernel_features
 
 get_ncurses
 get_tic
@@ -3752,7 +3865,6 @@ fi
 if $ENABLE_GUI; then
     prepare_x11
     get_tinyx
-    INCLUDED_FEATURES+="\n  * TinyX"
     if [[ $USED_WM == "TWM" ]]; then
         get_twm
     fi
@@ -3764,65 +3876,28 @@ if $ENABLE_GUI; then
     get_xli
     get_xload
     get_xset
-    INCLUDED_FEATURES+="\n  * oneko"
-    INCLUDED_FEATURES+="\n  * st"
-    INCLUDED_FEATURES+="\n  * xcalc"
-    INCLUDED_FEATURES+="\n  * xclock"
-    INCLUDED_FEATURES+="\n  * xeyes"
-    INCLUDED_FEATURES+="\n  * xli"
-    INCLUDED_FEATURES+="\n  * xset"
-else
-    EXCLUDED_FEATURES+="\n  * TinyX"
-    EXCLUDED_FEATURES+="\n  * oneko"
-    EXCLUDED_FEATURES+="\n  * st"
-    EXCLUDED_FEATURES+="\n  * xcalc"
-    EXCLUDED_FEATURES+="\n  * xclock"
-    EXCLUDED_FEATURES+="\n  * xeyes"
-    EXCLUDED_FEATURES+="\n  * xli"
-    EXCLUDED_FEATURES+="\n  * xset"
 fi
 
 if ! $SKIP_DROPBEAR; then
     get_dropbear
-    INCLUDED_FEATURES+="\n  * Dropbear"
-else
-    EXCLUDED_FEATURES+="\n  * Dropbear"
 fi
 if ! $SKIP_EMACS; then
     get_emacs
-    INCLUDED_FEATURES+="\n  * Mg"
-else
-    EXCLUDED_FEATURES+="\n  * Mg"
 fi
 if ! $SKIP_FILE; then
     get_file
-    INCLUDED_FEATURES+="\n  * file"
-else
-    EXCLUDED_FEATURES+="\n  * file"
 fi
 if ! $SKIP_GIT; then
     get_git
-    INCLUDED_FEATURES+="\n  * Git"
-else
-    EXCLUDED_FEATURES+="\n  * Git"
 fi
 if ! $SKIP_NANO; then
     get_nano
-    INCLUDED_FEATURES+="\n  * nano"
-else
-    EXCLUDED_FEATURES+="\n  * nano"
 fi
 if ! $SKIP_ROVER; then
     get_rover
-    INCLUDED_FEATURES+="\n  * Rover"
-else
-    EXCLUDED_FEATURES+="\n  * Rover"
 fi
 if ! $SKIP_TNFTP; then
     get_tnftp
-    INCLUDED_FEATURES+="\n  * tnftp"
-else
-    EXCLUDED_FEATURES+="\n  * tnftp"
 fi
 
 trim_fat
@@ -3838,4 +3913,5 @@ build_disk_img
 convert_disk_img
 fix_perms
 clean_stale_mounts
+get_installed_programs_features
 generate_report
