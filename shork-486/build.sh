@@ -3137,7 +3137,7 @@ get_tnftp()
     cd $TNFTP
 
     # Compile and install
-    echo -e "${GREEN}Downloading and compiling tnftp...${RESET}"
+    echo -e "${GREEN}Compiling tnftp...${RESET}"
     unset LIBS
     ./configure --host=${HOST} --prefix=/usr --disable-editcomplete --disable-shared --enable-static CC="${CC_STATIC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}" CFLAGS="-Os -march=i486" LDFLAGS=""
     make -j$(nproc)
@@ -3147,6 +3147,40 @@ get_tnftp()
     # Copy licence file
     cp COPYING $CURR_DIR/build/LICENCES/tnftp.txt
 }
+
+
+
+# Download and compile shorkfetch
+get_shorkfetch()
+{
+    cd "$CURR_DIR/build"
+
+    # Skip if already compiled
+    if [ -f "${DESTDIR}/usr/bin/shorkfetch" ]; then
+        echo -e "${LIGHT_RED}shorkfetch already compiled, skipping...${RESET}"
+        #return
+    fi
+
+    # Download source
+    if [ -d shorkfetch ]; then
+        echo -e "${YELLOW}shorkfetch source already present, resetting...${RESET}"
+        cd shorkfetch
+        git config --global --add safe.directory "$CURR_DIR/build/shorkfetch"
+        git reset --hard
+        git clean -fdx
+    else
+        echo -e "${GREEN}Downloading shorkfetch...${RESET}"
+        git clone https://github.com/SharktasticA/shorkfetch.git
+        cd shorkfetch
+    fi
+
+    # Compile and install
+    echo -e "${GREEN}Compiling shorkfetch...${RESET}"
+    make -j$(nproc) CC="${CC_STATIC}" AR="${AR}" RANLIB="${RANLIB}" STRIP="${STRIP}"
+    sudo make DESTDIR="${DESTDIR}" install
+}
+
+
 
 # Removes anything I've seemed unnecessary in the name of space saving 
 trim_fat()
@@ -3229,7 +3263,6 @@ build_file_system()
     chmod +x $CURR_DIR/sysfiles/poweroff
     chmod +x $CURR_DIR/sysfiles/shutdown
     chmod +x $CURR_DIR/shorkutils/shorkoff
-    chmod +x $CURR_DIR/shorkutils/shorkfetch
     chmod +x $CURR_DIR/shorkutils/shorkcol
     chmod +x $CURR_DIR/shorkutils/shorkhelp
     chmod +x $CURR_DIR/shorkutils/shorkmap
@@ -3259,7 +3292,6 @@ build_file_system()
     echo -e "${GREEN}Copying shorkutils...${RESET}"
     copy_sysfile $CURR_DIR/shorkutils/shorkcol $DESTDIR/usr/libexec/shorkcol
     copy_sysfile $CURR_DIR/sysfiles/shorkcol.conf $DESTDIR/etc/shorkcol.conf
-    copy_sysfile $CURR_DIR/shorkutils/shorkfetch $DESTDIR/usr/bin/shorkfetch
     copy_sysfile $CURR_DIR/shorkutils/shorkhelp $DESTDIR/usr/bin/shorkhelp
     copy_sysfile $CURR_DIR/shorkutils/shorkoff $DESTDIR/sbin/shorkoff
 
@@ -3899,6 +3931,8 @@ fi
 if ! $SKIP_TNFTP; then
     get_tnftp
 fi
+
+get_shorkfetch
 
 trim_fat
 copy_licences
