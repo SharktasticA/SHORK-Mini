@@ -3158,7 +3158,7 @@ get_shorkfetch()
     # Skip if already compiled
     if [ -f "${DESTDIR}/usr/bin/shorkfetch" ]; then
         echo -e "${LIGHT_RED}shorkfetch already compiled, skipping...${RESET}"
-        #return
+        return
     fi
 
     # Download source
